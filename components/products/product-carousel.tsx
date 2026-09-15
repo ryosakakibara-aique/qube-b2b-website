@@ -1,35 +1,122 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { Product } from "@/lib/products/types";
 
-const HIGHLIGHT_INTERVAL_MS = 2000;
-const BASE_CARD_WIDTH = 189; // matches Figma's smallest card (188.8px)
-const SCALE_STEP = 0.125; // Figma progression: 1 / 1.125 / 1.25
-const MAX_SCALE_DISTANCE = 2; // cards 2+ away from active stay at base size
+// Figma exact pixel sizes — 3 tiers based on distance from the active card
+const SIZES = {
+  active: {
+    w: 236,
+    h: 442,
+    img: 210,
+    p: 12,
+    innerGap: 6,
+    fs: 16,
+    fsSmall: 12.8,
+    fsTag: 10,
+    tagPx: 12,
+  },
+  adjacent: {
+    w: 212.4,
+    h: 397.8,
+    img: 189,
+    p: 10.8,
+    innerGap: 5.4,
+    fs: 14.4,
+    fsSmall: 11.5,
+    fsTag: 9,
+    tagPx: 10.8,
+  },
+  rest: {
+    w: 188.8,
+    h: 353.6,
+    img: 168,
+    p: 9.6,
+    innerGap: 4.8,
+    fs: 12.8,
+    fsSmall: 10.2,
+    fsTag: 8,
+    tagPx: 9.6,
+  },
+} as const;
 
-function scaleForDistance(distance: number) {
-  const steps = Math.max(MAX_SCALE_DISTANCE - distance, 0);
-  return 1 + steps * SCALE_STEP;
+type SizeKey = keyof typeof SIZES;
+
+// Fixed gap between every card (Figma: gap-[16px])
+const CARD_GAP = 16;
+// Snappy, single easing for every animated property — no competing curves, no bounce.
+const SWIPE_MS = 220;
+const SWIPE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"; // expo-out: fast, decisive, no overshoot
+// Total time per cycle (swipe + pause)
+const CYCLE_MS = 2000;
+// How many full copies of the product list to render back-to-back. 3 guarantees the active
+// card (always kept inside the middle copy) has real neighbor cards on both sides at every
+// position, so the strip never has to jump across the array to loop — it just keeps sliding.
+const COPIES = 3;
+
+function distanceTier(dist: number): SizeKey {
+  if (dist === 0) return "active";
+  if (dist === 1) return "adjacent";
+  return "rest";
+}
+
+// Sum of card widths + gaps preceding `index` in the flat (non-wrapping) extended strip.
+function offsetOfIndex(activeIndex: number, index: number) {
+  let x = 0;
+  for (let i = 0; i < index; i++) {
+    x += SIZES[distanceTier(Math.abs(i - activeIndex))].w + CARD_GAP;
+  }
+  return x;
+}
+
+// Center of card[index] within the strip, for a given activeIndex.
+function centerOfIndex(activeIndex: number, index: number) {
+  const w = SIZES[distanceTier(Math.abs(index - activeIndex))].w;
+  return offsetOfIndex(activeIndex, index) + w / 2;
 }
 
 export function ProductCarousel({ products }: { products: Product[] }) {
-  const [activeIndex, setActiveIndex] = useState(products.length - 1);
+  const n = products.length;
+
+  // Index into the extended (tripled) strip. Starts at the first item of the middle copy and
+  // only ever increases — RTL: the active card advances forward, so new cards are revealed on
+  // the right and drift left through center, exiting on the left.
+  const [activeExtIndex, setActiveExtIndex] = useState(() => n);
+  // "swiping" true only during the slide transition, false during the pause
+  const [swiping, setSwiping] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Measure container width for the translateX calculation
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setContainerWidth(entry.contentRect.width);
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
-    if (products.length <= 1) return;
+    if (n <= 1) return;
     const id = setInterval(() => {
-      // RTL: active index moves right -> left, wrapping around
-      setActiveIndex(
-        (current) => (current - 1 + products.length) % products.length,
-      );
-    }, HIGHLIGHT_INTERVAL_MS);
+      setSwiping(true);
+      setActiveExtIndex((prev) => prev + 1);
+      setTimeout(() => {
+        setSwiping(false);
+        // Once we've advanced into the trailing copy, silently rebase back into the middle
+        // copy. This happens the instant the transition ends (transition is already "none"
+        // for this render), so the reset itself is invisible — the same product sits at the
+        // same on-screen position before and after, just at a lower extIndex.
+        setActiveExtIndex((prev) => (prev >= 2 * n ? prev - n : prev));
+      }, SWIPE_MS);
+    }, CYCLE_MS);
     return () => clearInterval(id);
-  }, [products.length]);
+  }, [n]);
 
-  if (products.length === 0) {
+  if (n === 0) {
     return (
       <p className="rounded-2xl border border-dashed border-[#cbd5e1] p-8 text-sm text-[#71717a]">
         No products are available yet.
@@ -37,26 +124,80 @@ export function ProductCarousel({ products }: { products: Product[] }) {
     );
   }
 
+  const extended = useMemo(
+    () =>
+      Array.from({ length: COPIES }, (_, copy) =>
+        products.map((product, i) => ({
+          product,
+          key: `${product.id}-${copy}`,
+          extIndex: copy * n + i,
+        })),
+      ).flat(),
+    [products, n],
+  );
+
+  const activeCenterInTrack =
+    containerWidth > 0 ? centerOfIndex(activeExtIndex, activeExtIndex) : 0;
+  const trackTranslate = containerWidth / 2 - activeCenterInTrack;
+
   return (
-    <div className="relative w-full">
-      <div className="flex items-center justify-center gap-4 overflow-x-auto py-8">
-        {products.map((product, index) => {
-          const rawDistance = Math.abs(index - activeIndex);
-          const distance = Math.min(rawDistance, products.length - rawDistance);
-          const scale = scaleForDistance(distance);
+    <div
+      ref={containerRef}
+      className="relative w-full overflow-hidden"
+      style={{ height: SIZES.active.h + 64 }} // 64 = py-8 top + bottom
+    >
+      {/* Sliding track */}
+      <div
+        className="absolute top-8 flex items-center"
+        style={{
+          left: 0,
+          gap: CARD_GAP,
+          transform: `translateX(${trackTranslate}px)`,
+          // Slide smoothly during the swipe phase; snap instantly during the pause/reset phase.
+          transition: swiping
+            ? `transform ${SWIPE_MS}ms ${SWIPE_EASE}`
+            : "none",
+          willChange: "transform",
+        }}
+      >
+        {extended.map(({ product, key, extIndex }) => {
+          const dist = Math.abs(extIndex - activeExtIndex);
+          const tier = distanceTier(dist);
+          const size = SIZES[tier];
+          // Only the middle (authoritative) copy should be reachable by keyboard/AT — the
+          // outer copies exist purely as visual filler for the loop.
+          const isAuthoritative = extIndex >= n && extIndex < 2 * n;
 
           return (
             <Link
-              key={product.id}
+              key={key}
               href={`/products/${product.slug}`}
+              aria-hidden={isAuthoritative ? undefined : true}
+              tabIndex={isAuthoritative ? undefined : -1}
+              className="shrink-0 flex flex-col rounded-[32px] border border-[#e2e8f0] bg-[#f1f5f9] overflow-hidden"
               style={{
-                width: BASE_CARD_WIDTH,
-                transform: `scale(${scale})`,
-                zIndex: 10 - distance,
+                width: size.w,
+                height: size.h,
+                padding: size.p,
+                gap: size.innerGap,
+                // Card resize animates in lockstep with the track slide — same duration, same
+                // easing, so nothing lags or overshoots relative to anything else.
+                transition: swiping
+                  ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}, padding ${SWIPE_MS}ms ${SWIPE_EASE}`
+                  : "none",
               }}
-              className="flex shrink-0 origin-center flex-col gap-2.5 rounded-[32px] border border-[#e2e8f0] bg-transparent p-2.5 transition-transform duration-150 ease-out will-change-transform"
             >
-              <div className="relative aspect-square w-full overflow-hidden rounded-[20px] bg-[#e2e8f0]">
+              {/* Image */}
+              <div
+                className="relative shrink-0 rounded-[20px] bg-[#e2e8f0] overflow-hidden"
+                style={{
+                  width: size.img,
+                  height: size.img,
+                  transition: swiping
+                    ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}`
+                    : "none",
+                }}
+              >
                 <span className="sr-only">
                   {product.imageAlt ?? product.title}
                 </span>
@@ -69,20 +210,51 @@ export function ProductCarousel({ products }: { products: Product[] }) {
                   />
                 ) : null}
               </div>
-              <div className="flex flex-col gap-1 pb-4">
-                <h2 className="px-1 text-center text-xs font-bold text-[#3f3f46]">
-                  {product.title}
-                </h2>
-                <p className="line-clamp-3 px-1 text-center text-[10px] leading-4 text-[#52525b]">
-                  {product.description}
-                </p>
-                <div className="flex flex-wrap justify-center gap-1 py-1">
+
+              {/* Text content */}
+              <div
+                className="flex flex-col min-h-0 flex-1 overflow-hidden"
+                style={{ gap: size.innerGap }}
+              >
+                <div
+                  style={{ paddingLeft: size.p / 3, paddingRight: size.p / 3 }}
+                >
+                  <p
+                    className="font-bold text-[#3f3f46] leading-snug"
+                    style={{ fontSize: size.fs }}
+                  >
+                    {product.title}
+                  </p>
+                  <p
+                    className="mt-1 line-clamp-3 text-[#3f3f46] leading-snug"
+                    style={{ fontSize: size.fsSmall }}
+                  >
+                    {product.description}
+                  </p>
+                </div>
+
+                {/* Tags */}
+                <div
+                  className="flex flex-wrap"
+                  style={{ gap: size.innerGap, paddingTop: size.innerGap / 2 }}
+                >
                   {product.tags.slice(0, 3).map((tag) => (
                     <span
                       key={tag}
-                      className="rounded-lg border border-[#00c290]/40 bg-gradient-to-b from-[#00c290]/30 via-[#0fb8aa]/30 to-[#1fadc5]/30 px-2 py-0.5 text-[8px] font-medium text-[#0e8e8f]"
+                      className="rounded-lg border border-[#00c290]/40 bg-gradient-to-b from-[rgba(0,194,144,0.3)] via-[rgba(15,184,170,0.3)] to-[rgba(31,173,197,0.3)]"
+                      style={{
+                        paddingLeft: size.tagPx,
+                        paddingRight: size.tagPx,
+                        paddingTop: 1,
+                        paddingBottom: 1,
+                      }}
                     >
-                      {tag}
+                      <span
+                        className="bg-gradient-to-b from-[#00c290] via-[#0fb8aa] to-[#1fadc5] bg-clip-text font-medium text-transparent whitespace-nowrap"
+                        style={{ fontSize: size.fsTag }}
+                      >
+                        {tag}
+                      </span>
                     </span>
                   ))}
                 </div>
@@ -91,8 +263,17 @@ export function ProductCarousel({ products }: { products: Product[] }) {
           );
         })}
       </div>
-      <div className="pointer-events-none absolute inset-y-0 left-0 z-20 w-[120px] bg-gradient-to-r from-[#f1f5f9] to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 z-20 w-[120px] bg-gradient-to-l from-[#f1f5f9] to-transparent" />
+
+      {/* Edge gradient fades — matches Figma's horizontal-gradient-light token
+          (stops at 69.624% / rgba(241,245,249,0.8) and 88.304% / rgba(241,245,249,0)) */}
+      <div
+        className="pointer-events-none absolute inset-y-0 left-0 z-30 w-[200px] bg-gradient-to-r from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)]"
+        aria-hidden="true"
+      />
+      <div
+        className="pointer-events-none absolute inset-y-0 right-0 z-30 w-[200px] bg-gradient-to-l from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)]"
+        aria-hidden="true"
+      />
     </div>
   );
 }

@@ -39,7 +39,7 @@ export default async function ProductsPage() {
       </section>
 
       <section className="w-full pb-28">
-        <ProductCoverflow products={products} />
+        <ProductCarousel products={products} />
       </section>
 
       <section className="py-24 lg:py-28">
