@@ -2,6 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/layout/site-nav";
 import { getProducts } from "@/lib/products/queries";
+import { ProductCoverflow } from "@/components/layout/product-coverflow";
+import { ProductCarousel } from "@/components/products/product-carousel";
 
 const storyNames = [
   "International School Manila",
@@ -36,53 +38,8 @@ export default async function ProductsPage() {
         </div>
       </section>
 
-      <section className="mx-auto w-full max-w-260 px-6 pb-28 lg:px-0">
-        {products.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-[#cbd5e1] p-8 text-sm text-[#71717a]">
-            No products are available yet.
-          </p>
-        ) : (
-          <div className="flex gap-3 overflow-visible">
-            {products.map((product) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.slug}`}
-                className="group min-w-43.5 flex-1 rounded-2xl border border-[#dbe3ec] bg-transparent p-2 transition-transform hover:-translate-y-1"
-              >
-                <div className="flex aspect-[0.9] items-center justify-center rounded-xl bg-[#e2e8f0] p-4">
-                  <span className="sr-only">
-                    {product.imageAlt ?? product.title}
-                  </span>
-                  {product.imageUrl ? (
-                    <Image
-                      src={product.imageUrl}
-                      alt=""
-                      width={240}
-                      height={240}
-                      className="h-full w-full object-contain opacity-0"
-                    />
-                  ) : null}
-                </div>
-                <div className="px-1 pb-2 pt-3">
-                  <h2 className="text-xs font-bold">{product.title}</h2>
-                  <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-[#52525b]">
-                    {product.description}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1">
-                    {product.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-full bg-[#9de9e5] px-2 py-0.5 text-[9px] text-[#0e8e8f]"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+      <section className="w-full pb-28">
+        <ProductCoverflow products={products} />
       </section>
 
       <section className="py-24 lg:py-28">

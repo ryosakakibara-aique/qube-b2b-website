@@ -1,6 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/layout/site-nav";
+import { HeroVideoSection } from "@/components/layout/hero-video-section";
+import { ParallaxFeaturesSection } from "@/components/layout/parallax-features-section";
+import { PandoraShowcaseGrid } from "@/components/layout/pandora-showcase-grid";
+import { ClientLogoMarquee } from "@/components/layout/client-logo-marquee";
+import { Button } from "@/components/ui/Button";
+import { SuccessStoriesCarousel } from "@/components/layout/success-stories-carousel";
 
 const businessFeatures = [
   [
@@ -71,16 +77,8 @@ export default function Home() {
           <span aria-hidden="true">→</span>
         </div>
       </section>
-      <section className="mx-auto max-w-[1040px] px-6 lg:px-0">
-        <Image
-          src="/hero-demo.png"
-          alt="QUBE smart locker product interface demo"
-          width={1040}
-          height={600}
-          className="h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-          priority
-        />
+      <section className="mx-auto max-w-[1040px] px-6 pb-16 lg:px-0 lg:pb-[100px]">
+        <HeroVideoSection />
       </section>
       <section
         id="features"
@@ -100,27 +98,15 @@ export default function Home() {
         </div>
       </section>
       <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
-        <Image
-          src="/section-features.png"
-          alt="QUBE product experience and workspace dashboard"
-          width={1440}
-          height={973}
-          className="h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
+        <ParallaxFeaturesSection />
       </section>
       <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
         <h2 className="max-w-md text-3xl font-semibold leading-tight">
           PANDORA - our most advanced Smart Locker yet
         </h2>
-        <Image
-          src="/section-pandora.png"
-          alt="PANDORA smart locker use cases"
-          width={1440}
-          height={1338}
-          className="mt-8 h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
+        <div className="mt-8">
+          <PandoraShowcaseGrid />
+        </div>
       </section>
       <section className="mx-auto max-w-[1040px] px-6 py-20 text-center lg:px-0 lg:py-28">
         <h2 className="text-2xl font-semibold">
@@ -139,37 +125,22 @@ export default function Home() {
       </section>
       <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Our Clients</h2>
-          <button className="rounded-xl bg-[#27272a] px-5 py-2 text-xs font-bold text-white">
-            Learn More
-          </button>
+          <h2 className="text-3xl font-semibold text-gray-900">Our Clients</h2>
+          <Button variant="dark">Learn More</Button>
         </div>
-        <Image
-          src="/section-clients.png"
-          alt="QUBE client logos and client layout"
-          width={1440}
-          height={780}
-          className="mt-6 h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
+        <div className="mt-6">
+          <ClientLogoMarquee />
+        </div>
       </section>
-      <section className="py-20 lg:py-28">
+      <section className="py-24 lg:py-28">
         <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between px-6 lg:px-0">
-          <h2 className="text-2xl font-semibold">Success stories</h2>
-          <button className="rounded-xl bg-[#27272a] px-5 py-2 text-xs font-bold text-white">
-            Read stories
-          </button>
+          <h2 className="text-3xl font-semibold text-gray-900">
+            Success stories
+          </h2>
+          <Button variant="dark">Read stories</Button>
         </div>
-        <div className="mx-auto mt-6 flex max-w-[1440px] gap-3 overflow-hidden px-6 lg:px-0">
-          {storyNames.map((name) => (
-            <article
-              key={name}
-              className="flex min-w-[240px] flex-1 flex-col justify-end rounded-2xl bg-[#18181b] p-6 text-white"
-            >
-              <p className="text-base font-semibold">{name}</p>
-              <span className="mt-8 text-xs text-[#a1a1aa]">Read Story →</span>
-            </article>
-          ))}
+        <div className="mx-auto mt-6 max-w-[1440px] px-6 lg:px-0">
+          <SuccessStoriesCarousel />
         </div>
       </section>
       <section

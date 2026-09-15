@@ -20,7 +20,7 @@ const pandoraContent = {
   sections: [
     [
       "WASH",
-      "Expand your laundry’s reach without building another branch - more efficient, more affordable, faster expansion. With the real-time data dashboard, you can monitor your customers transactions on-demand, remotely. With very informative statistics for more insightful, strategic adjustments.",
+      "Expand your laundry&apos;s reach without building another branch - more efficient, more affordable, faster expansion. With the real-time data dashboard, you can monitor your customers transactions on-demand, remotely. With very informative statistics for more insightful, strategic adjustments.",
     ],
     [
       "DROP",

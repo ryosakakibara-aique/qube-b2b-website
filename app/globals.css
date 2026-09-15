@@ -51,3 +51,55 @@ body {
 .landing-input:focus {
   box-shadow: 0 0 0 2px #10b9b8;
 }
+
+@keyframes marquee-rtl {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes marquee-ltr {
+  from {
+    transform: translateX(-50%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-marquee-rtl {
+  animation: marquee-rtl 45s linear infinite;
+}
+
+.animate-marquee-ltr {
+  animation: marquee-ltr 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-marquee-rtl,
+  .animate-marquee-ltr {
+    animation: none;
+  }
+}
+
+@keyframes gradient-pan {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+.hover-gradient-stroke {
+  animation: gradient-pan 3s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hover-gradient-stroke {
+    animation: none;
+  }
+}
