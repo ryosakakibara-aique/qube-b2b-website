@@ -1,26 +1,53 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f1f5f9;
+  --foreground: #3f3f46;
+  --surface: #ffffff;
+  --surface-muted: #e2e8f0;
+  --border: #cbd5e1;
+  --border-subtle: #e5e7eb;
+  --text-muted: #71717a;
+  --text-subtle: #94a3b8;
+  --accent: #3f3f46;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), sans-serif;
+}
+.cms-input {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  padding: 8px 16px;
+  color: var(--foreground);
+  outline: none;
+}
+.cms-input:focus {
+  box-shadow: 0 0 0 2px var(--foreground);
+}
+
+.landing-input {
+  width: 100%;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: transparent;
+  padding: 10px 12px;
+  font-size: 0.75rem;
+  outline: none;
+}
+
+.landing-input:focus {
+  box-shadow: 0 0 0 2px #10b9b8;
 }

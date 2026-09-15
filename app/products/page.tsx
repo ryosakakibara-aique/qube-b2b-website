@@ -1,45 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SiteNav } from "@/components/layout/site-nav";
-
-const businessFeatures = [
-  [
-    "Terminals",
-    "Give travelers a secure spot to store luggage while they move freely between gates and transit.",
-  ],
-  [
-    "Offices",
-    "Free up desk space and keep employee belongings safe with smart locker systems throughout the workplace.",
-  ],
-  [
-    "Theme Parks",
-    "Let guests stash bags and prizes securely so they can enjoy rides and attractions hands-free.",
-  ],
-  [
-    "Hotels",
-    "Offer attendees convenient storage for coats, bags, and gear so they feel welcome in the experience.",
-  ],
-  [
-    "Events",
-    "Flexible storage for conference attendees and guests, giving guests a better experience in the venue.",
-  ],
-  [
-    "Recreational Areas",
-    "Keep personal items safe while visitors enjoy outdoor activities like sports, hiking, and swimming.",
-  ],
-  [
-    "Restaurants",
-    "Allow diners to securely store shopping bags and outerwear for a more comfortable dining experience.",
-  ],
-  [
-    "Residentials",
-    "Give residents 24/7 parcel collection and personal storage right in their building lobby.",
-  ],
-  [
-    "Resorts",
-    "Enhance the guest experience with secure storage for luggage, valuables, and beach essentials.",
-  ],
-];
+import { getProducts } from "@/lib/products/queries";
 
 const storyNames = [
   "International School Manila",
@@ -49,113 +11,83 @@ const storyNames = [
   "PITX",
 ];
 
-export default function Home() {
+export default async function ProductsPage() {
+  const products = await getProducts();
+
   return (
     <main className="min-h-screen overflow-hidden bg-[#f1f5f9] text-[#18181b]">
       <SiteNav />
-      <section className="mx-auto grid min-h-[356px] w-full max-w-[1040px] gap-8 px-6 py-16 lg:grid-cols-2 lg:px-0 lg:py-[120px]">
-        <div className="max-w-[508px]">
-          <h1 className="max-w-[508px] text-4xl font-bold leading-[1.12] lg:text-[40px]">
-            QUBE Smart Lockers - first step towards smarter cities
+      <section className="mx-auto grid min-h-117.5 w-full max-w-260 gap-8 px-6 py-20 lg:grid-cols-2 lg:px-0 lg:py-37.5">
+        <div className="max-w-130">
+          <h1 className="text-4xl font-semibold leading-[1.08] lg:text-[40px]">
+            Array of Smart Products for every business needs
           </h1>
           <Link
             href="#contact"
-            className="mt-8 inline-flex h-11 items-center rounded-xl bg-[#10b9b8] px-6 text-sm font-bold text-white"
+            className="mt-8 inline-flex h-11 items-center rounded-xl bg-[#10b9b8] px-6 text-xs font-bold text-white"
           >
             Talk to an Expert
           </Link>
         </div>
-        <div className="flex items-end justify-end gap-2 pb-1 text-sm">
+        <div className="flex items-end justify-end gap-2 pb-1 text-xs">
           <span className="font-bold text-[#0e8e8f]">PANDORA 3.0</span>
-          <span className="text-[#71717a]">All solutions that we provide</span>
+          <span className="text-[#71717a]">Check our API Documentation</span>
           <span aria-hidden="true">→</span>
         </div>
       </section>
-      <section className="mx-auto max-w-[1040px] px-6 lg:px-0">
-        <Image
-          src="/hero-demo.png"
-          alt="QUBE smart locker product interface demo"
-          width={1040}
-          height={600}
-          className="h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-          priority
-        />
+
+      <section className="mx-auto w-full max-w-260 px-6 pb-28 lg:px-0">
+        {products.length === 0 ? (
+          <p className="rounded-2xl border border-dashed border-[#cbd5e1] p-8 text-sm text-[#71717a]">
+            No products are available yet.
+          </p>
+        ) : (
+          <div className="flex gap-3 overflow-visible">
+            {products.map((product) => (
+              <Link
+                key={product.id}
+                href={`/products/${product.slug}`}
+                className="group min-w-43.5 flex-1 rounded-2xl border border-[#dbe3ec] bg-transparent p-2 transition-transform hover:-translate-y-1"
+              >
+                <div className="flex aspect-[0.9] items-center justify-center rounded-xl bg-[#e2e8f0] p-4">
+                  <span className="sr-only">
+                    {product.imageAlt ?? product.title}
+                  </span>
+                  {product.imageUrl ? (
+                    <Image
+                      src={product.imageUrl}
+                      alt=""
+                      width={240}
+                      height={240}
+                      className="h-full w-full object-contain opacity-0"
+                    />
+                  ) : null}
+                </div>
+                <div className="px-1 pb-2 pt-3">
+                  <h2 className="text-xs font-bold">{product.title}</h2>
+                  <p className="mt-1 line-clamp-3 text-[10px] leading-4 text-[#52525b]">
+                    {product.description}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1">
+                    {product.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-full bg-[#9de9e5] px-2 py-0.5 text-[9px] text-[#0e8e8f]"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
-      <section
-        id="features"
-        className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28"
-      >
-        <h2 className="text-2xl font-semibold">Built for every businesses</h2>
-        <div className="mt-8 grid grid-cols-1 overflow-hidden rounded-2xl border border-[#dbe3ec] sm:grid-cols-2 lg:grid-cols-3">
-          {businessFeatures.map(([title, body]) => (
-            <article
-              key={title}
-              className="min-h-[150px] border-b border-[#dbe3ec] p-5 lg:border-r"
-            >
-              <p className="text-sm font-semibold">{title}</p>
-              <p className="mt-3 text-sm leading-5 text-[#52525b]">{body}</p>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
-        <Image
-          src="/section-features.png"
-          alt="QUBE product experience and workspace dashboard"
-          width={1440}
-          height={973}
-          className="h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
-      </section>
-      <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
-        <h2 className="max-w-md text-3xl font-semibold leading-tight">
-          PANDORA - our most advanced Smart Locker yet
-        </h2>
-        <Image
-          src="/section-pandora.png"
-          alt="PANDORA smart locker use cases"
-          width={1440}
-          height={1338}
-          className="mt-8 h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
-      </section>
-      <section className="mx-auto max-w-[1040px] px-6 py-20 text-center lg:px-0 lg:py-28">
-        <h2 className="text-2xl font-semibold">
-          Ask how we can help your business
-        </h2>
-        <p className="mx-auto mt-3 max-w-md text-sm text-[#71717a]">
-          Send us your contact information and a QUBE Smart Solution Expert will
-          reach out to you shortly.
-        </p>
-        <Link
-          href="#contact"
-          className="mt-6 inline-flex rounded-xl bg-[#10b9b8] px-6 py-3 text-sm font-bold text-white"
-        >
-          Talk to an Expert
-        </Link>
-      </section>
-      <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-semibold">Our Clients</h2>
-          <button className="rounded-xl bg-[#27272a] px-5 py-2 text-xs font-bold text-white">
-            Learn More
-          </button>
-        </div>
-        <Image
-          src="/section-clients.png"
-          alt="QUBE client logos and client layout"
-          width={1440}
-          height={780}
-          className="mt-6 h-auto w-full rounded-[28px]"
-          style={{ width: "100%", height: "auto" }}
-        />
-      </section>
-      <section className="py-20 lg:py-28">
+
+      <section className="py-24 lg:py-28">
         <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between px-6 lg:px-0">
-          <h2 className="text-2xl font-semibold">Success stories</h2>
+          <h2 className="text-2xl font-semibold text-white">Success stories</h2>
           <button className="rounded-xl bg-[#27272a] px-5 py-2 text-xs font-bold text-white">
             Read stories
           </button>
@@ -172,6 +104,7 @@ export default function Home() {
           ))}
         </div>
       </section>
+
       <section
         id="contact"
         className="mx-auto grid w-full max-w-[1040px] gap-8 px-6 py-20 lg:grid-cols-[1fr_1fr] lg:px-0 lg:py-28"
@@ -218,7 +151,7 @@ export default function Home() {
           <article className="border-b border-r border-[#dbe3ec] p-5">
             <h3 className="text-sm font-semibold">Real-time data tracking</h3>
             <p className="mt-2 text-xs text-[#71717a]">
-              Real-time analytics are reflected once they are available.
+              All transactions are reflected once they are made.
             </p>
           </article>
           <article className="border-b border-[#dbe3ec] p-5">
@@ -241,6 +174,7 @@ export default function Home() {
           </article>
         </div>
       </section>
+
       <footer className="border-t border-[#cbd5e1] py-12">
         <div className="mx-auto grid w-full max-w-[1040px] gap-10 px-6 lg:grid-cols-[1fr_2fr] lg:px-0">
           <div>
