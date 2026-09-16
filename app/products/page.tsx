@@ -4,6 +4,8 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { getProducts } from "@/lib/products/queries";
 import { ProductCoverflow } from "@/components/layout/product-coverflow";
 import { ProductCarousel } from "@/components/products/product-carousel";
+import { Button } from "@/components/ui/Button";
+import { SuccessStoriesCarousel } from "@/components/layout/success-stories-carousel";
 
 const storyNames = [
   "International School Manila",
@@ -44,21 +46,13 @@ export default async function ProductsPage() {
 
       <section className="py-24 lg:py-28">
         <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between px-6 lg:px-0">
-          <h2 className="text-2xl font-semibold text-white">Success stories</h2>
-          <button className="rounded-xl bg-[#27272a] px-5 py-2 text-xs font-bold text-white">
-            Read stories
-          </button>
+          <h2 className="text-3xl font-semibold text-gray-900">
+            Success stories
+          </h2>
+          <Button variant="dark">Read stories</Button>
         </div>
-        <div className="mx-auto mt-6 flex max-w-[1440px] gap-3 overflow-hidden px-6 lg:px-0">
-          {storyNames.map((name) => (
-            <article
-              key={name}
-              className="flex min-w-[240px] flex-1 flex-col justify-end rounded-2xl bg-[#18181b] p-6 text-white"
-            >
-              <p className="text-base font-semibold">{name}</p>
-              <span className="mt-8 text-xs text-[#a1a1aa]">Read Story →</span>
-            </article>
-          ))}
+        <div className="mx-auto mt-6 max-w-[1440px] px-6 lg:px-0">
+          <SuccessStoriesCarousel />
         </div>
       </section>
 
