@@ -11,6 +11,7 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: npm start
     autoDeploy: true
+    plan: free
     # Static, cheap, and does not touch the database, so a health check cannot be confused with an
     # application-level failure.
     healthCheckPath: /robots.txt
