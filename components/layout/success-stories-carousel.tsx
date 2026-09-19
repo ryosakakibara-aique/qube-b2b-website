@@ -103,7 +103,7 @@ export function SuccessStoriesCarousel() {
   const sequence = [...storyCards, ...storyCards];
   return (
     <div className="w-full overflow-hidden rounded-[30px]">
-      <div className="flex w-max gap-6 animate-marquee-rtl hover:[animation-play-state:paused]">
+      <div className="flex w-max gap-6 animate-marquee-rtl hover:[animation-play-state:paused] focus-within:[animation-play-state:paused]">
         {sequence.map((card, index) => (
           <StoryCardItem key={`${card.id}-${index}`} card={card} />
         ))}

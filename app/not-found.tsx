@@ -10,7 +10,7 @@ export default function NotFound() {
         <h1 className="mt-3 text-4xl font-semibold">Page not found</h1>
         <Link
           href="/"
-          className="mt-6 inline-flex rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-bold text-white"
+          className="cta-gradient mt-6 inline-flex rounded-[var(--radius-control)] px-6 py-3 text-sm font-bold text-[var(--brand-foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
         >
           Return home
         </Link>

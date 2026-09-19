@@ -3,8 +3,8 @@ import type { ButtonHTMLAttributes } from "react";
 type ButtonVariant = "dark" | "accent";
 
 const variantClasses: Record<ButtonVariant, string> = {
-  dark: "bg-[#27272a]",
-  accent: "bg-[#10b9b8]",
+  dark: "bg-[var(--surface-dark)] text-white",
+  accent: "cta-gradient text-[var(--brand-foreground)]",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -21,7 +21,7 @@ export function Button({
   return (
     <button
       type={type}
-      className={`inline-flex items-center justify-center rounded-xl px-5 py-2 text-xs font-bold text-white transition-opacity hover:opacity-90 ${variantClasses[variant]} ${className}`.trim()}
+      className={`inline-flex items-center justify-center rounded-[var(--radius-control)] px-5 py-2 text-xs font-bold transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)] disabled:opacity-60 ${variantClasses[variant]} ${className}`.trim()}
       {...rest}
     >
       {children}

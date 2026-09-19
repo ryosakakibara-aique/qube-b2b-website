@@ -1,0 +1,133 @@
+{
+  "$comment": "Machine-readable reference extracted from the Figma SVG exports in docs/design/screenshots/. Covers COLOR and GEOMETRY only. Typography and copy text are NOT present: Figma outline-converted all text to paths, so no font-family, font-size, or text content exists in the source. Do not treat this file as a complete design-token set.",
+  "source": {
+    "figmaFile": "QUBE B2B Website + CMS",
+    "fileKey": "0vnDTxLADkHwJiaD6MplU3",
+    "exportFormat": "SVG, text outlined to <path>",
+    "extractedFrom": "docs/design/screenshots/",
+    "extractionMethod": "regex over SVG markup; fill=/stroke=/rx=/rect ge= attributes",
+    "extractedOn": "working tree at commit 3f69dce"
+  },
+  "coverage": {
+    "color": "complete - every hex literal in all 10 frames",
+    "geometry": "complete - viewBox, rect x/y/width/height/rx",
+    "typography": "absent - no font-family, font-size, tspan, or text nodes",
+    "copyText": "absent - all glyphs converted to outlines"
+  },
+  "frames": [
+    { "nodeId": "1:1117", "file": "landing page.svg",            "route": "/",                    "width": 1440, "height": 7054, "variant": "desktop" },
+    { "nodeId": "1:556",  "file": "landing page - mobile.svg",   "route": "/",                    "width": 402,  "height": 9858, "variant": "mobile" },
+    { "nodeId": "1:1926", "file": "products.svg",                "route": "/products",            "width": 1440, "height": 2575, "variant": "desktop" },
+    { "nodeId": "8:1602", "file": "products - mobile.svg",       "route": "/products",            "width": 402,  "height": 4231, "variant": "mobile" },
+    { "nodeId": "1:2070", "file": "product-{product}.svg",       "route": "/products/[product]",  "width": 1440, "height": 5935, "variant": "desktop" },
+    { "nodeId": "13:2821","file": "product-[product] - mobile.svg","route": "/products/[product]","width": 402,  "height": 8535, "variant": "mobile" },
+    { "nodeId": "1:2265", "file": "cms-login.svg",               "route": "/cms/login",           "width": 1440, "height": 1024, "variant": "desktop" },
+    { "nodeId": "1:2316", "file": "cms -products.svg",           "route": "/cms/products",        "width": 1440, "height": 1024, "variant": "desktop" },
+    { "nodeId": "1:2372", "file": "cms-create.svg",              "route": "/cms/create",          "width": 1440, "height": 2239, "variant": "desktop" },
+    { "nodeId": "1:2525", "file": "cms-edit-product.svg",        "route": "/cms/edit/[product]",  "width": 1440, "height": 3087, "variant": "desktop" }
+  ],
+  "palette": {
+    "$comment": "All 30 distinct colors across all 10 frames, with total occurrence counts. Counts include sprite-like repetition, so treat them as relative weight, not element counts.",
+    "neutral": {
+      "#FEFEFE": 18,
+      "#F9FAFB": 2,
+      "#F1F5F9": 144,
+      "#E5E7EB": 91,
+      "#E2E8F0": 156,
+      "#D1D5DB": 26,
+      "#CBD5E1": 93,
+      "#9E9E9E": 12,
+      "#A1A1AA": 1,
+      "#9CA3AF": 6,
+      "#94A3B8": 22,
+      "#71717A": 13,
+      "#6B7280": 76,
+      "#52525B": 5,
+      "#424242": 2,
+      "#374151": 26,
+      "#323238": 16,
+      "#3F3F46": 273,
+      "#27272A": 871,
+      "#262626": 1,
+      "#212121": 2,
+      "#18181B": 65,
+      "#111827": 85,
+      "#111114": 2
+    },
+    "accentGradient": {
+      "$comment": "The primary brand accent is a THREE-STOP GRADIENT, not a solid color. 341 occurrences each, 357 linearGradient definitions total. Used for all primary CTA fills, tag chips, and emphasis strokes.",
+      "stops": ["#00C290", "#0FB8AA", "#1FADC5"],
+      "occurrencesEach": 341
+    },
+    "secondaryAccent": {
+      "#0F766E": 1,
+      "$comment": "Single occurrence. A dark teal, distinct from the code's #0E8E8F. Needs verification against the frame it appears in."
+    },
+    "productPageAccent": {
+      "#F1D7D9": 22,
+      "#F8EDF0": 4,
+      "$comment": "Pale pink. Appears ONLY in products.svg (1:1926) and product-{product}.svg (1:2070). Absent from the implementation entirely."
+    }
+  },
+  "radii": {
+    "$comment": "Radii are affected by Figma's half-pixel stroke/vector insets, so measured values cluster around clean integers. Match to the clean value.",
+    "measured": {
+      "32": 1, "31.5": 28, "30": 35, "29.5": 7, "28.35": 4, "25.2": 20,
+      "24": 2, "20": 17, "18": 4, "16": 20, "15.5": 1, "15": 1,
+      "12": 40, "11.5": 140, "7.75": 50, "6.975": 24, "6.2": 120, "6": 11, "1.5": 19
+    },
+    "normalizedIntended": {
+      "12": "controls, inputs, buttons (code: rounded-xl)",
+      "16": "small cards and image tiles",
+      "20": "medium cards and image tiles (code: rounded-[20px])",
+      "24": "circular icons (48/2)",
+      "30": "large section/card shells (code: rounded-[30px])",
+      "32": "hero and panel shells (code: rounded-[32px])",
+      "8": "mapped from measured 7.75",
+      "6": "mapped from measured 6.2"
+    }
+  },
+  "components": {
+    "primaryCta": {
+      "$comment": "CONFIRMED against 1:1117. Four instances, all gradient-filled with the brand accent. The implementation uses a solid #10B9B8 instead, which appears nowhere in the design.",
+      "design": {
+        "width": 163,
+        "heights": [32, 44],
+        "radius": 12,
+        "fill": "linear-gradient 90deg-ish, #00C290 -> #0FB8AA -> #1FADC5"
+      },
+      "code": { "fill": "#10B9B8 solid", "radius": "12 (rounded-xl)", "status": "MISMATCH" }
+    },
+    "textInput": {
+      "$comment": "Measured in 1:2265.",
+      "design": { "width": 299, "height": 35, "radius": 11.5, "fill": "#E2E8F0" },
+      "code": { "radius": "12 (.cms-input)", "status": "MATCH" }
+    },
+    "primaryButtonCms": {
+      "design": { "width": 98, "height": 32, "radius": 12, "fill": "#3F3F46" },
+      "code": { "fill": "#3F3F46", "radius": "12", "status": "MATCH" }
+    },
+    "heroVideoPlaceholder": {
+      "$comment": "Measured in 1:556 (mobile). Play button is a 48px circle at 50% of its containing box.",
+      "design": { "box": { "width": 370, "height": 240, "radius": 32 }, "playButton": { "diameter": 48, "radius": 24, "fill": "#212121" } },
+      "code": { "playButton": "h-12 w-12 (48px), rounded-3xl, bg-[#212121], 18px triangle", "status": "MATCH" }
+    }
+  },
+  "conformance": {
+    "$comment": "Diff of every hex literal in app/, components/, lib/ against the 30-color design palette.",
+    "inventedColors": {
+      "#DBE3EC": { "count": 18, "role": "marketing section borders", "nearestDesignColor": "#CBD5E1 or #E5E7EB", "priority": "high" },
+      "#10B9B8": { "count": 11, "role": "primary CTA fill + focus ring", "nearestDesignColor": "brand gradient #00C290/#0FB8AA/#1FADC5", "priority": "critical" },
+      "#0E8E8F": { "count": 3, "role": "accent text ('PANDORA 3.0')", "nearestDesignColor": "#0F766E", "priority": "medium" },
+      "#FFFFFF": { "count": 2, "role": "text on dark buttons", "nearestDesignColor": "#FEFEFE", "priority": "low" }
+    },
+    "totalInventedOccurrences": 34,
+    "confirmedColors": ["#71717A", "#E2E8F0", "#F1F5F9", "#3F3F46", "#00C290", "#27272A", "#CBD5E1", "#0FB8AA", "#1FADC5", "#18181B", "#E5E7EB", "#94A3B8", "#52525B", "#424242", "#212121", "#A1A1AA"],
+    "unusedDesignColors": ["#0F766E", "#111114", "#111827", "#262626", "#323238", "#374151", "#6B7280", "#9CA3AF", "#9E9E9E", "#D1D5DB", "#F1D7D9", "#F8EDF0", "#F9FAFB", "#FEFEFE"]
+  },
+  "cssVariablesInCode": {
+    "$comment": "Defined in app/globals.css. Notably --accent: #3f3f46, but #3f3f46 functions as the CMS dark neutral, while the true BRAND accent is the teal gradient - which has no variable.",
+    "declared": ["--background", "--foreground", "--surface", "--surface-muted", "--border", "--border-subtle", "--text-muted", "--text-subtle", "--accent"],
+    "exposedToTailwind": ["--color-background", "--color-foreground", "--font-sans"]
+  }
+}

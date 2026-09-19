@@ -1,29 +1,36 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { getSupabaseConfig } from "@/lib/supabase/config";
 
 export async function createSupabaseServerClient() {
   const cookieStore = await cookies();
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const config = getSupabaseConfig();
 
-  if (!supabaseUrl || !supabaseAnonKey) {
+  if (!config) {
     return null;
   }
 
-  return createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
+  try {
+    return createServerClient(config.url, config.anonKey, {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options),
+            );
+          } catch {
+            // Server Components cannot always write cookies; the request proxy handles refreshes.
+          }
+        },
       },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        } catch {
-          // Server Components cannot always write cookies; middleware handles refreshes.
-        }
-      },
-    },
-  });
+    });
+  } catch (error) {
+    // A malformed project URL must not turn every CMS route into a 500. Report it and let callers
+    // render an explicit unconfigured state.
+    console.error("[supabase] Could not create the server client", error);
+    return null;
+  }
 }

@@ -1,15 +1,64 @@
 @import "tailwindcss";
 
+/*
+  Design tokens.
+
+  Every value below is taken from docs/design/DESIGN-REFERENCE.md §2, which was extracted from
+  the committed Figma exports. Values that appear in no frame must not be added here — see
+  docs/DEVELOPMENT-PHASES.md §0.2.
+*/
 :root {
-  --background: #f1f5f9;
-  --foreground: #3f3f46;
+  /* Surfaces */
+  --background: #f1f5f9; /* page background */
   --surface: #ffffff;
-  --surface-muted: #e2e8f0;
-  --border: #cbd5e1;
-  --border-subtle: #e5e7eb;
+  --surface-muted: #e2e8f0; /* inputs, image placeholders */
+  --surface-dark: #27272a; /* dominant dark surface on public pages */
+  --surface-dark-raised: #18181b; /* dark cards (success stories) */
+  --cms-surface: #3f3f46; /* CMS chrome, admin buttons */
+
+  /* Text */
+  --foreground: #3f3f46;
+  --heading: #18181b; /* higher-contrast public headings, per TYPOGRAPHY.md */
   --text-muted: #71717a;
   --text-subtle: #94a3b8;
-  --accent: #3f3f46;
+  --text-inverse: #fefefe;
+
+  /* Borders */
+  --border: #cbd5e1; /* strong borders */
+  --border-subtle: #e5e7eb; /* subtle borders, panel dividers */
+
+  /* Brand. The accent is a gradient in the design, not a solid colour. */
+  --brand-1: #00c290;
+  --brand-2: #0fb8aa;
+  --brand-3: #1fadc5;
+  --brand-gradient: linear-gradient(
+    90deg,
+    var(--brand-1) 0%,
+    var(--brand-2) 50%,
+    var(--brand-3) 100%
+  );
+  --brand-ink: #0f766e; /* dark teal accent text */
+  /*
+    Label colour for the brand gradient. Dark rather than white: white on this gradient measures
+    2.30-2.68:1 and fails WCAG AA at every text size, while #18181b measures 6.69-8.69:1 across
+    all three stops.
+  */
+  --brand-foreground: #18181b;
+
+  /*
+    Focus ring. The exports contain no interaction states, so this is the design's own mid
+    gradient stop used as the least-invented visible focus colour. Revisit when Figma provides
+    state specs.
+  */
+  --focus-ring: var(--brand-3);
+
+  /* Radii, from measured values in DESIGN-REFERENCE.md §3 */
+  --radius-chip: 8px;
+  --radius-control: 12px;
+  --radius-card-sm: 16px;
+  --radius-card-md: 20px;
+  --radius-shell: 30px;
+  --radius-panel: 32px;
 }
 
 @theme inline {
@@ -23,12 +72,22 @@ body {
   color: var(--foreground);
   font-family: var(--font-inter), sans-serif;
 }
+
+/*
+  Brand gradient CTA. Used by the primary call-to-action in every section it appears in
+  (landing hero, nav, product pages, contact panels).
+*/
+.cta-gradient {
+  background-color: var(--brand-1);
+  background-image: var(--brand-gradient);
+}
+
 .cms-input {
   display: block;
   width: 100%;
   margin-top: 4px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   background: var(--surface-muted);
   padding: 8px 16px;
   color: var(--foreground);
@@ -40,7 +99,7 @@ body {
 
 .landing-input {
   width: 100%;
-  border: 1px solid #e2e8f0;
+  border: 1px solid var(--border-subtle);
   border-radius: 10px;
   background: transparent;
   padding: 10px 12px;
@@ -49,7 +108,33 @@ body {
 }
 
 .landing-input:focus {
-  box-shadow: 0 0 0 2px #10b9b8;
+  box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+/*
+  Loading placeholder. Figma defines no loading frames, so this stays deliberately plain: the
+  design's own muted surface, no invented colour, and it stops animating when the visitor has asked
+  for reduced motion.
+*/
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.skeleton {
+  background-color: var(--surface-muted);
+  animation: skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton {
+    animation: none;
+  }
 }
 
 @keyframes marquee-rtl {

@@ -1,0 +1,30 @@
+# Render blueprint.
+#
+# Deploy with: Render dashboard -> New -> Blueprint -> point at this repository.
+# Values marked `sync: false` are secrets/instance-specific and are prompted for in the dashboard
+# rather than stored here.
+
+services:
+  - type: web
+    name: qube-b2b-website
+    runtime: node
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    autoDeploy: true
+    # Static, cheap, and does not touch the database, so a health check cannot be confused with an
+    # application-level failure.
+    healthCheckPath: /robots.txt
+    envVars:
+      # Must be set at BUILD time: Next.js inlines NEXT_PUBLIC_* values into the bundle.
+      - key: NEXT_PUBLIC_SITE_URL
+        value: https://business.qubesmartlockers.com
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        sync: false
+      - key: NEXT_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET
+        value: product-images
+      # Optional: where to announce a new enquiry (Teams workflow, Slack, Power Automate).
+      # Server-only. Leave unset to store enquiries silently.
+      - key: INQUIRY_WEBHOOK_URL
+        sync: false

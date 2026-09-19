@@ -51,10 +51,14 @@ const SWIPE_MS = 220;
 const SWIPE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"; // expo-out: fast, decisive, no overshoot
 // Total time per cycle (swipe + pause)
 const CYCLE_MS = 2000;
-// How many full copies of the product list to render back-to-back. 3 guarantees the active
-// card (always kept inside the middle copy) has real neighbor cards on both sides at every
-// position, so the strip never has to jump across the array to loop — it just keeps sliding.
-const COPIES = 3;
+// How many full copies of the product list a looping strip renders back-to-back. 3 guarantees the
+// active card (always kept inside the middle copy) has real neighbour cards on both sides at every
+// position, so the strip never has to jump across the array to loop.
+//
+// Below that, looping would mean showing the same product twice side by side, which reads as
+// duplicate catalogue entries rather than as one product. With fewer than LOOP_COPIES products the
+// strip therefore renders a single copy and does not auto-advance.
+const LOOP_COPIES = 3;
 
 function distanceTier(dist: number): SizeKey {
   if (dist === 0) return "active";
@@ -79,15 +83,34 @@ function centerOfIndex(activeIndex: number, index: number) {
 
 export function ProductCarousel({ products }: { products: Product[] }) {
   const n = products.length;
+  // Loop only when there are enough products to fill the strip without repeating one immediately.
+  const copies = n >= LOOP_COPIES ? LOOP_COPIES : 1;
 
-  // Index into the extended (tripled) strip. Starts at the first item of the middle copy and
-  // only ever increases — RTL: the active card advances forward, so new cards are revealed on
+  // Index into the extended strip. With copies, it starts at the first item of the middle copy so
+  // the active card has neighbours on both sides; with a single copy it starts at the first card.
+  // It only ever increases — RTL: the active card advances forward, so new cards are revealed on
   // the right and drift left through center, exiting on the left.
-  const [activeExtIndex, setActiveExtIndex] = useState(() => n);
+  const [activeExtIndex, setActiveExtIndex] = useState(() =>
+    copies === 1 ? 0 : n,
+  );
   // "swiping" true only during the slide transition, false during the pause
   const [swiping, setSwiping] = useState(false);
+  // Auto-advance is motion, so it stays off until the visitor's preference is known (see below).
+  const [motionAllowed, setMotionAllowed] = useState(false);
+  // Hovering or focusing the strip stops it, giving every pointer and keyboard user a way to
+  // hold a card still (WCAG 2.2.2 Pause, Stop, Hide).
+  const [paused, setPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+
+  // Honour `prefers-reduced-motion`, and keep following it if the visitor changes it mid-session.
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setMotionAllowed(!query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   // Measure container width for the translateX calculation
   useEffect(() => {
@@ -100,7 +123,7 @@ export function ProductCarousel({ products }: { products: Product[] }) {
   }, []);
 
   useEffect(() => {
-    if (n <= 1) return;
+    if (copies === 1) return; // nothing to advance to without repeating a card
     const id = setInterval(() => {
       setSwiping(true);
       setActiveExtIndex((prev) => prev + 1);
@@ -114,7 +137,19 @@ export function ProductCarousel({ products }: { products: Product[] }) {
       }, SWIPE_MS);
     }, CYCLE_MS);
     return () => clearInterval(id);
-  }, [n]);
+  }, [copies, n, motionAllowed, paused]);
+
+  const extended = useMemo(
+    () =>
+      Array.from({ length: copies }, (_, copy) =>
+        products.map((product, i) => ({
+          product,
+          key: `${product.id}-${copy}`,
+          extIndex: copy * n + i,
+        })),
+      ).flat(),
+    [products, n, copies],
+  );
 
   if (n === 0) {
     return (
@@ -123,18 +158,6 @@ export function ProductCarousel({ products }: { products: Product[] }) {
       </p>
     );
   }
-
-  const extended = useMemo(
-    () =>
-      Array.from({ length: COPIES }, (_, copy) =>
-        products.map((product, i) => ({
-          product,
-          key: `${product.id}-${copy}`,
-          extIndex: copy * n + i,
-        })),
-      ).flat(),
-    [products, n],
-  );
 
   const activeCenterInTrack =
     containerWidth > 0 ? centerOfIndex(activeExtIndex, activeExtIndex) : 0;
@@ -145,6 +168,10 @@ export function ProductCarousel({ products }: { products: Product[] }) {
       ref={containerRef}
       className="relative w-full overflow-hidden"
       style={{ height: SIZES.active.h + 64 }} // 64 = py-8 top + bottom
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
     >
       {/* Sliding track */}
       <div
@@ -164,9 +191,10 @@ export function ProductCarousel({ products }: { products: Product[] }) {
           const dist = Math.abs(extIndex - activeExtIndex);
           const tier = distanceTier(dist);
           const size = SIZES[tier];
-          // Only the middle (authoritative) copy should be reachable by keyboard/AT — the
-          // outer copies exist purely as visual filler for the loop.
-          const isAuthoritative = extIndex >= n && extIndex < 2 * n;
+          // Only one copy should be reachable by keyboard/AT — the filler copies exist purely to
+          // make the loop seamless. With a single copy, every card is authoritative.
+          const isAuthoritative =
+            copies === 1 || (extIndex >= n && extIndex < 2 * n);
 
           return (
             <Link

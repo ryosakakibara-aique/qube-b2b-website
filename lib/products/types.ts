@@ -1,8 +1,12 @@
+export type ProductImage = {
+  url: string;
+  alt: string;
+};
+
 export type ProductContentSection = {
   heading: string;
   body: string;
-  imageUrl?: string;
-  imageAlt?: string;
+  images: ProductImage[];
 };
 
 export type Product = {
@@ -16,10 +20,14 @@ export type Product = {
   acquisition: string;
   locations: string;
   ctaLabel: string;
+  published: boolean;
+  createdAt: string;
+  updatedAt: string;
   contentSections: ProductContentSection[];
 };
 
 export type ProductActionState = {
   error?: string;
   success?: string;
+  fieldErrors?: Record<string, string>;
 };
