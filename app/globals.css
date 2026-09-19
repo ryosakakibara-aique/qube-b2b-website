@@ -103,8 +103,19 @@ body {
   border-radius: 10px;
   background: transparent;
   padding: 10px 12px;
-  font-size: 0.75rem;
+  /*
+    16px on touch-sized viewports. iOS Safari zooms the whole page when a control smaller than
+    16px takes focus, which leaves the layout scrolled sideways mid-form. The design's smaller
+    size is kept from the lg breakpoint up, where that behaviour does not apply.
+  */
+  font-size: 1rem;
   outline: none;
+}
+
+@media (min-width: 1024px) {
+  .landing-input {
+    font-size: 0.75rem;
+  }
 }
 
 .landing-input:focus {

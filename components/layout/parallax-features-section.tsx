@@ -102,7 +102,7 @@ export function ParallaxFeaturesSection() {
         </h2>
         <Link
           href="#contact"
-          className="inline-flex shrink-0 items-center rounded-xl bg-[#27272a] px-6 py-3 text-sm font-bold text-white"
+          className="inline-flex w-fit shrink-0 items-center rounded-xl bg-[#27272a] px-6 py-3 text-sm font-bold text-white"
         >
           Check our product suite
         </Link>

@@ -529,6 +529,10 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   verified one.
 - **`docs/design/screenshots/` does not exist**, so the frames those docs reference cannot be read.
   Re-export PNG (1x/2x), or SVG with "Outline Text" disabled, to close this and the gap above.
+- **The mobile layout is inferred, not designed.** Only desktop frames are readable, so the collapsed
+  navbar, the H1 leading/tracking below `lg`, the section padding and the 16px form inputs come from
+  the existing tokens plus the client's mobile spot-test notes rather than from a mobile frame. Each is
+  a single class or one `globals.css` rule, so a corrected mobile export replaces them cheaply.
 - **Footer link labels** are not recoverable from the reference pack. The footer renders navigation
   targets that are known to exist rather than placeholder link text.
 - **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so those

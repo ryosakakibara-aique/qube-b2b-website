@@ -293,13 +293,14 @@ export function ProductCarousel({ products }: { products: Product[] }) {
       </div>
 
       {/* Edge gradient fades — matches Figma's horizontal-gradient-light token
-          (stops at 69.624% / rgba(241,245,249,0.8) and 88.304% / rgba(241,245,249,0)) */}
+          (stops at 69.624% / rgba(241,245,249,0.8) and 88.304% / rgba(241,245,249,0)).
+          Hidden on narrow viewports, where a 200px fade on each side covers the strip. */}
       <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-30 w-[200px] bg-gradient-to-r from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)]"
+        className="pointer-events-none absolute inset-y-0 left-0 z-30 hidden w-[200px] bg-gradient-to-r from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
         aria-hidden="true"
       />
       <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-30 w-[200px] bg-gradient-to-l from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)]"
+        className="pointer-events-none absolute inset-y-0 right-0 z-30 hidden w-[200px] bg-gradient-to-l from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
         aria-hidden="true"
       />
     </div>

@@ -34,7 +34,7 @@ export default async function ProductsPage() {
 
       <section className="mx-auto grid min-h-117.5 w-full max-w-260 gap-8 px-6 py-20 lg:grid-cols-2 lg:px-0 lg:py-37.5">
         <div className="max-w-130">
-          <h1 className="text-4xl font-semibold leading-[1.08] lg:text-[40px]">
+          <h1 className="text-4xl font-semibold leading-[1.05] tracking-tight lg:text-[40px] lg:leading-[1.08] lg:tracking-normal">
             Array of Smart Products for every business needs
           </h1>
           <Link
@@ -44,7 +44,7 @@ export default async function ProductsPage() {
             Talk to an Expert
           </Link>
         </div>
-        <div className="flex items-end justify-end gap-2 pb-1 text-xs">
+        <div className="flex items-end justify-start gap-2 pb-1 text-xs lg:justify-end">
           <span className="font-bold text-[var(--brand-ink)]">PANDORA 3.0</span>
           <span className="text-[var(--text-muted)]">
             Check our API Documentation

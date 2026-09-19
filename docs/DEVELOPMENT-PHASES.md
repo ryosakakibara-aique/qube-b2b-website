@@ -574,9 +574,10 @@ module-level constant, so the bucket can be overridden and tested without re-imp
 
 ### Known gaps carried into the next round
 
-- **Fixed `min-h-[...]` values taken from desktop frame heights** (up to 2192px on the product
-  detail content section) may produce large empty areas at mobile widths. Verification needs the
-  mobile frames (D3).
+- **The two hero blocks still carry minimum heights** (`min-h-[356px]` on `/`, `min-h-117.5` — 470px —
+  on `/products`). The product detail page's frame-matched heights were all removed (see the
+  detail-page entry below), so the worst case is gone, but whether these two read as empty space at
+  mobile widths needs the mobile frames (D3).
 - **`contact_submissions` has no rate limiting**; abuse protection is currently a honeypot only.
 - **The authenticated screens need a real session to exercise here.** No service-role credential
   exists in this workspace by design, so `/cms/*` behaviour (the formatting toolbar, the new date
@@ -594,7 +595,9 @@ module-level constant, so the bucket can be overridden and tested without re-imp
   shown an empty CMS. The redirect needs a live session to exercise, so it is unit-tested at the
   decision boundary and code-reviewed.
 - **Deferred by request:** making the carousel slow down (rather than stop) on hover, or advancing it
-  on scroll. Also deferred: the Figma reference exports (D2/D3) and the canonical hostname (D6).
+  on scroll; and all scroll-triggered animations, which the client placed after the mobile pass
+  (Round 13). Also deferred: the Figma reference exports (D2/D3). The canonical hostname (D6) closed
+  in Round 12.
 
 ---
 
@@ -953,6 +956,50 @@ open input: the canonical origin (D6).
 
 `NEXT_PUBLIC_*` values are inlined at build time, so changing one on Render requires a redeploy
 rather than a restart — noted in the README because it is an easy trap.
+
+---
+
+**Round 13 — the mobile pass.** The client spot-tested the deployed site on a phone and returned seven
+concrete defects. All seven are fixed; none needed a data, security or architecture change.
+
+1. **The navbar had no collapsed state** — the inline row simply overflowed. `SiteNav` now renders the
+   inline row from `lg` up only and hands narrow viewports to a new
+   `components/layout/mobile-nav.tsx`: a disclosure button wired with `aria-expanded`/`aria-controls`,
+   Escape to close with focus returned to the button, and close-on-navigate. The panel is anchored to
+   the header (`relative`) rather than to the header's `max-w-[1040px]` container, so it spans the
+   viewport instead of stopping at the content edge.
+2. **The `PANDORA 3.0 | … | →` eyebrow row** was `justify-end`, which on a phone pressed it against the
+   right edge. It is now left-aligned below `lg` and unchanged above it, on `/` and `/products` alike.
+3. **The client-logos section** gained top padding on narrow viewports (`pt-24`); the `lg` spacing is
+   untouched.
+4. **"Check our product suite"** was a flex child in a column, so it stretched to the full width. It now
+   carries `w-fit`.
+5. **The Pandora showcase grid** had `gap-3` below `sm`, separating panels the design shows joined. The
+   gap classes are gone at every breakpoint, which is what the desktop layout already did.
+6. **The `/` and `/products` H1s** are tighter below `lg` (`leading-[1.05] tracking-tight`) and unchanged
+   above it, following the client's "a little tighter". These are **inferred** values, not measured ones:
+   the committed Figma exports are outline-converted, so leading and tracking cannot be read from the
+   design and were adjusted relative to the sizes already in the code.
+   6b. **The product carousel's edge gradients are hidden below `lg`.** The 200px fades at each end
+   covered most of the strip on a phone; from `lg` up they are unchanged.
+7. **Inputs are 16px on touch-sized viewports.** iOS Safari zooms the page when a control smaller than
+   16px takes focus, which left the contact form scrolled sideways mid-entry. `.landing-input` is `1rem`
+   by default and returns to the design's `0.75rem` from `lg` up. It is a rule in `globals.css` rather
+   than an inline size, so the value stays a single point of change.
+
+**Verified**: `npm test` 131/131, `npx tsc --noEmit` exit 0, `npm run lint` exit 0, `npm run build`
+exit 0 with `/` and `/products` still static (5-minute revalidate) and `/products/[product]` still SSG.
+Eleven markers were then read back out of the prerendered HTML and the built CSS: the disclosure button
+on both pages, the desktop row still inline, both eyebrow rows, the new section padding, the `w-fit`
+button, both H1 treatments, the two `lg:block` carousel fades, and `.landing-input` at `1rem` with its
+`lg` override.
+
+**Not verified**: no browser is available here, so items 2–6 are confirmed as markup rather than as
+pixels, and the collapsed menu was checked by reading the component and its rendered attributes rather
+than by tapping it. Those items are inferred mobile values throughout, for the reason given in item 6;
+if they read wrong on the device, each is one class to adjust. The client deferred scroll animations
+until after this pass ("Let's update this first before adding animations on scroll"), so they remain the
+next round's scope.
 
 ---
 

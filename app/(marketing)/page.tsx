@@ -96,7 +96,7 @@ export default function Home() {
 
       <section className="mx-auto grid min-h-[356px] w-full max-w-[1040px] gap-8 px-6 py-16 lg:grid-cols-2 lg:px-0 lg:py-[120px]">
         <div className="max-w-[508px]">
-          <h1 className="max-w-[508px] text-4xl font-bold leading-[1.12] lg:text-[40px]">
+          <h1 className="max-w-[508px] text-4xl font-bold leading-[1.05] tracking-tight lg:text-[40px] lg:leading-[1.12] lg:tracking-normal">
             QUBE Smart Lockers - first step towards smarter cities
           </h1>
           <Link
@@ -106,7 +106,7 @@ export default function Home() {
             Talk to an Expert
           </Link>
         </div>
-        <div className="flex items-end justify-end gap-2 pb-1 text-sm">
+        <div className="flex items-end justify-start gap-2 pb-1 text-sm lg:justify-end">
           <span className="font-bold text-[var(--brand-ink)]">PANDORA 3.0</span>
           <Link href="/products" className="text-[var(--text-muted)] hover:underline">
             All solutions that we provide
@@ -166,7 +166,7 @@ export default function Home() {
         </Link>
       </section>
 
-      <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
+      <section className="mx-auto w-full max-w-[1040px] px-6 pt-24 pb-20 lg:px-0 lg:py-28">
         <div className="flex items-center justify-between">
           <h2 className="text-3xl font-semibold text-[var(--heading)]">
             Our Clients

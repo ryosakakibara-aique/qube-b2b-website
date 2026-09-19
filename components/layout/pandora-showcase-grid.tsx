@@ -106,7 +106,7 @@ function ShowcaseCell({
 
 export function PandoraShowcaseGrid() {
   return (
-    <div className="grid grid-cols-1 gap-3 overflow-hidden rounded-[30px] border border-[#e5e7eb] sm:gap-0 lg:h-[1082px] lg:grid-cols-3 lg:grid-rows-4 lg:gap-0">
+    <div className="grid grid-cols-1 overflow-hidden rounded-[30px] border border-[#e5e7eb] lg:h-[1082px] lg:grid-cols-3 lg:grid-rows-4">
       {cells.map(({ id, ...cellProps }) => (
         <ShowcaseCell key={id} {...cellProps} />
       ))}
