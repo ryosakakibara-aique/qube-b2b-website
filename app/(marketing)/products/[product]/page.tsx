@@ -6,6 +6,7 @@ import { SiteNav } from "@/components/layout/site-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SuccessStoriesCarousel } from "@/components/layout/success-stories-carousel";
 import { ContactSection } from "@/components/marketing/contact-section";
+import { HeroReveal, Reveal } from "@/components/motion/reveal";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/notice";
@@ -186,7 +187,14 @@ export default async function ProductPage({
           </ol>
         </nav>
 
-        <div className="mt-8 grid gap-10 lg:grid-cols-2">
+        {/* Above the fold, with the description beside it: the heading role, so this block takes the
+            shortest and only undelayed fade in the cascade. */}
+        <HeroReveal
+          as="div"
+          index={0}
+          variant="heading"
+          className="mt-8 grid gap-10 lg:grid-cols-2"
+        >
           <div>
             <h1 className="text-5xl font-bold leading-none lg:text-6xl">
               {productData.title}
@@ -215,10 +223,15 @@ export default async function ProductPage({
               className="pt-2 text-base leading-6 text-[var(--foreground)]"
             />
           ) : null}
-        </div>
+        </HeroReveal>
 
         {productData.imageUrl ? (
-          <div className="relative mt-14 h-[300px] overflow-hidden rounded-[var(--radius-card-sm)] lg:h-[408px]">
+          <HeroReveal
+            as="div"
+            index={1}
+            variant="visual"
+            className="relative mt-14 h-[300px] overflow-hidden rounded-[var(--radius-card-sm)] lg:h-[408px]"
+          >
             <Image
               src={productData.imageUrl}
               alt={productData.imageAlt ?? `${productData.title} product image`}
@@ -227,15 +240,20 @@ export default async function ProductPage({
               className="object-cover"
               priority
             />
-          </div>
+          </HeroReveal>
         ) : (
-          <div className="mt-14 flex h-[300px] items-center justify-center rounded-[var(--radius-card-sm)] bg-[var(--surface-muted)] text-xs text-[var(--text-muted)] lg:h-[408px]">
+          <HeroReveal
+            as="div"
+            index={1}
+            variant="visual"
+            className="mt-14 flex h-[300px] items-center justify-center rounded-[var(--radius-card-sm)] bg-[var(--surface-muted)] text-xs text-[var(--text-muted)] lg:h-[408px]"
+          >
             No product image has been added yet.
-          </div>
+          </HeroReveal>
         )}
 
         {productData.tags.length > 0 ? (
-          <ul className="mt-14 flex flex-wrap justify-center gap-2">
+          <Reveal as="ul" className="mt-14 flex flex-wrap justify-center gap-2">
             {productData.tags.map((tag) => (
               <li
                 key={tag}
@@ -244,7 +262,7 @@ export default async function ProductPage({
                 {tag}
               </li>
             ))}
-          </ul>
+          </Reveal>
         ) : null}
       </section>
 
@@ -253,8 +271,10 @@ export default async function ProductPage({
       {productData.contentSections.length > 0 ? (
         <section className="mx-auto w-full max-w-[1040px] px-6 py-16 lg:px-0 lg:py-24">
           {productData.contentSections.map((section, index) => (
-            <article
+            <Reveal
+              as="article"
               key={`${section.heading}-${index}`}
+              index={index}
               className={index > 0 ? "mt-16" : undefined}
             >
               {section.heading ? (
@@ -292,12 +312,15 @@ export default async function ProductPage({
                   ))}
                 </div>
               ) : null}
-            </article>
+            </Reveal>
           ))}
         </section>
       ) : null}
 
-      <section className="mx-auto flex max-w-[1040px] flex-col items-center justify-center px-6 py-20 text-center lg:px-0 lg:py-28">
+      <Reveal
+        as="section"
+        className="mx-auto flex max-w-[1040px] flex-col items-center justify-center px-6 py-20 text-center lg:px-0 lg:py-28"
+      >
         <h2 className="text-2xl font-semibold">
           Ask how we can help your business
         </h2>
@@ -307,13 +330,13 @@ export default async function ProductPage({
         </p>
         <Link
           href="#contact"
-          className="cta-gradient mt-6 rounded-[var(--radius-control)] px-6 py-3 text-xs font-bold text-[var(--brand-foreground)] transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+          className="cta-gradient motion-press mt-6 rounded-[var(--radius-control)] px-6 py-3 text-xs font-bold text-[var(--brand-foreground)] transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
         >
           Talk to an Expert
         </Link>
-      </section>
+      </Reveal>
 
-      <section className="py-24 lg:py-28">
+      <Reveal as="section" className="py-24 lg:py-28">
         <div className="mx-auto flex w-full max-w-[1040px] items-center justify-between px-6 lg:px-0">
           <h2 className="text-3xl font-semibold text-[var(--heading)]">
             Success stories
@@ -323,21 +346,21 @@ export default async function ProductPage({
         <div className="mx-auto mt-6 max-w-[1440px] px-6 lg:px-0">
           <SuccessStoriesCarousel />
         </div>
-      </section>
+      </Reveal>
 
       <ContactSection sourcePath={`/products/${productData.slug}`} />
 
       {relatedProducts.length > 0 ? (
         <section className="mx-auto w-full max-w-[1040px] px-6 py-20 lg:px-0 lg:py-28">
-          <h2 className="text-3xl font-bold">
+          <Reveal as="h2" index={0} className="text-3xl font-bold">
             Array of Smart Products for every business requirements
-          </h2>
+          </Reveal>
           <ul className="mt-8 grid gap-4 sm:grid-cols-3">
-            {relatedProducts.map((related) => (
-              <li key={related.id}>
+            {relatedProducts.map((related, index) => (
+              <Reveal as="li" key={related.id} index={index}>
                 <Link
                   href={`/products/${related.slug}`}
-                  className="block rounded-[var(--radius-card-sm)] border border-[var(--border-subtle)] p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+                  className="motion-lift block rounded-[var(--radius-card-sm)] border border-[var(--border-subtle)] p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
                 >
                   <div className="relative h-32 overflow-hidden rounded-[var(--radius-control)] bg-[var(--surface-muted)]">
                     {related.imageUrl ? (
@@ -355,7 +378,7 @@ export default async function ProductPage({
                     {related.description}
                   </p>
                 </Link>
-              </li>
+              </Reveal>
             ))}
           </ul>
         </section>

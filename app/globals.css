@@ -59,6 +59,23 @@
   --radius-card-md: 20px;
   --radius-shell: 30px;
   --radius-panel: 32px;
+
+  /*
+    Motion timings. These are NOT design values: the design specifies no motion at all, so unlike
+    everything above they are an engineering proposal. They mirror components/motion/tokens.ts and
+    tests/motion-tokens.test.ts keeps the two in step. They are custom properties so that the two
+    CSS-only micro-interactions below use the same numbers as the JavaScript-driven entrances.
+  */
+  --motion-duration-micro: 150ms;
+  --motion-duration-fast: 200ms;
+  --motion-duration-base: 300ms;
+  --motion-duration-hero: 260ms;
+  --motion-duration-reveal: 450ms;
+  --motion-duration-enter: 250ms;
+  --motion-duration-exit: 150ms;
+  --motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-lift: 2px;
+  --motion-press-scale: 0.98;
 }
 
 @theme inline {
@@ -197,5 +214,55 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .hover-gradient-stroke {
     animation: none;
+  }
+}
+
+/*
+  Hover and press feedback for controls and cards.
+
+  These two live in CSS rather than in Motion on purpose. A hover state fires on every pointer
+  crossing, and a compositor-only transition costs nothing there, while the animation runtime is
+  reserved for entrances that need orchestration and viewport tracking. Both read the motion tokens
+  above, so the two halves cannot drift apart.
+
+  Left unlayered deliberately: the transition shorthand here should win over Tailwind's
+  `transition-*` utilities on the same element rather than fight them.
+*/
+.motion-lift {
+  transition:
+    transform var(--motion-duration-fast) var(--motion-ease-out),
+    opacity var(--motion-duration-fast) var(--motion-ease-out),
+    border-color var(--motion-duration-fast) var(--motion-ease-out);
+}
+
+.motion-press {
+  transition:
+    transform var(--motion-duration-micro) var(--motion-ease-out),
+    opacity var(--motion-duration-fast) var(--motion-ease-out);
+}
+
+.motion-press:active {
+  transform: scale(var(--motion-press-scale));
+}
+
+/*
+  Guarded so the lift cannot stick to a tapped element on a touch screen, where hover is either
+  absent or applied on tap and never released.
+*/
+@media (hover: hover) {
+  .motion-lift:hover {
+    transform: translateY(calc(-1 * var(--motion-lift)));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .motion-lift,
+  .motion-press {
+    transition: none;
+  }
+
+  .motion-lift:hover,
+  .motion-press:active {
+    transform: none;
   }
 }

@@ -2,6 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { AnimatePresence } from "motion/react";
+import * as m from "motion/react-m";
+import { MOTION_ENABLED } from "@/components/motion/tokens";
+import { panelDrop } from "@/components/motion/variants";
 
 type NavItem = { href: string; label: string };
 
@@ -41,6 +45,34 @@ export function MobileNav({
 
   const close = () => setOpen(false);
 
+  const panelClassName =
+    "absolute inset-x-0 top-[72px] z-50 border-b border-[var(--border-subtle)] bg-[var(--background)] px-6 py-4";
+
+  const panel = (
+    <>
+      <ul className="flex flex-col">
+        {[...items, accountItem].map((item) => (
+          <li key={item.href}>
+            <Link
+              href={item.href}
+              onClick={close}
+              className="block py-2 text-sm font-medium text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+            >
+              {item.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link
+        href={cta.href}
+        onClick={close}
+        className="cta-gradient mt-2 inline-flex w-full items-center justify-center rounded-[var(--radius-control)] px-5 py-3 text-sm font-bold text-[var(--brand-foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+      >
+        {cta.label}
+      </Link>
+    </>
+  );
+
   return (
     <div className="lg:hidden">
       <button
@@ -76,34 +108,38 @@ export function MobileNav({
         </svg>
       </button>
 
-      {open ? (
-        <nav
-          id="mobile-navigation"
-          aria-label="Primary navigation"
-          className="absolute inset-x-0 top-[72px] z-50 border-b border-[var(--border-subtle)] bg-[var(--background)] px-6 py-4"
-        >
-          <ul className="flex flex-col">
-            {[...items, accountItem].map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  onClick={close}
-                  className="block py-2 text-sm font-medium text-[var(--foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-                >
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link
-            href={cta.href}
-            onClick={close}
-            className="cta-gradient mt-2 inline-flex w-full items-center justify-center rounded-[var(--radius-control)] px-5 py-3 text-sm font-bold text-[var(--brand-foreground)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
-          >
-            {cta.label}
-          </Link>
-        </nav>
-      ) : null}
+      {/* Enter and exit both animate. This panel is the one real overlay in the public site, so it
+          is the one place `AnimatePresence` is used — route changes deliberately do not animate
+          their exit, because the App Router discards the outgoing tree.
+
+          The panel body is built once and the element around it depends on the kill switch, so
+          turning motion off cannot leave this panel stuck at its hidden state with no runtime left
+          to animate it in. */}
+      <AnimatePresence>
+        {open ? (
+          MOTION_ENABLED ? (
+            <m.nav
+              id="mobile-navigation"
+              aria-label="Primary navigation"
+              variants={panelDrop}
+              initial="hidden"
+              animate="visible"
+              exit="exit"
+              className={panelClassName}
+            >
+              {panel}
+            </m.nav>
+          ) : (
+            <nav
+              id="mobile-navigation"
+              aria-label="Primary navigation"
+              className={panelClassName}
+            >
+              {panel}
+            </nav>
+          )
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

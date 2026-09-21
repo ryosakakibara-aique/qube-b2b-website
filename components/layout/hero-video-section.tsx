@@ -1,32 +1,4 @@
-import Image from "next/image";
-
-type ClientLogo = {
-  src: string;
-  alt: string;
-  width: number;
-  height: number;
-};
-
-const clientLogos: ClientLogo[] = [
-  { src: "/jollibee-logo.svg", alt: "Jollibee", width: 103, height: 24 },
-  { src: "/kmc-logo.svg", alt: "KMC", width: 93, height: 22 },
-  {
-    src: "/ism-logo.svg",
-    alt: "International School Manila",
-    width: 162,
-    height: 22,
-  },
-  { src: "/pitx-logo.svg", alt: "PITX", width: 72, height: 20 },
-  { src: "/lucima-logo.svg", alt: "Lucima", width: 70, height: 37 },
-  { src: "/rhk-logo.svg", alt: "RHK", width: 44, height: 40 },
-  { src: "/anjo-world-logo.svg", alt: "Anjo World", width: 94, height: 29 },
-  {
-    src: "/enchanted-kingdom-logo.svg",
-    alt: "Enchanted Kingdom",
-    width: 69,
-    height: 30,
-  },
-];
+import { ClientLogoGrid } from "@/components/layout/client-logo-grid";
 
 export function HeroVideoSection() {
   return (
@@ -50,19 +22,7 @@ export function HeroVideoSection() {
         </div>
       </div>
       <div className="flex w-full items-center justify-center bg-gradient-to-t from-[#f1f5f9] via-[#f1f5f9]/[0.51] via-70% to-[#f1f5f9]/0 py-4">
-        <div className="grid grid-cols-2 items-center gap-x-10 gap-y-6 sm:grid-cols-4">
-          {clientLogos.map((logo) => (
-            <div key={logo.alt} className="flex items-center justify-center">
-              <Image
-                src={logo.src}
-                alt={logo.alt}
-                width={logo.width}
-                height={logo.height}
-                className="h-auto w-auto"
-              />
-            </div>
-          ))}
-        </div>
+        <ClientLogoGrid variant="hero" />
       </div>
     </div>
   );

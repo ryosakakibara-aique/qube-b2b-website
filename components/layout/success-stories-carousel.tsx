@@ -1,6 +1,18 @@
 import Image from "next/image";
 import Link from "next/link";
 
+/**
+ * Success stories.
+ *
+ * A dataset of its own, deliberately not shared with `client-logo-grid.tsx` even though the same
+ * eight logo files appear in both: these are stories, each with its own destination and its own
+ * order, not the client list. `highlight` is carried on one card but is not rendered yet.
+ *
+ * **Deferred, at the client's request:** every card points at `href: "#"`, and the arrow in
+ * "Read Story →" is part of the card's link rather than a control of its own. Giving each card a real
+ * destination — and deciding whether the arrow is separately clickable — is a separate task.
+ */
+
 type StoryCard = {
   id: string;
   logo: { src: string; alt: string; width: number; height: number };

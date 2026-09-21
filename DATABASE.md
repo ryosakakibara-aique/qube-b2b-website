@@ -122,7 +122,9 @@ Every table has RLS enabled. Summary:
 
 Bucket `product-images` (public read). Bucket name is overridable with
 `NEXT_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET`. Uploads are restricted to PNG, JPEG and WebP, capped
-at 5 MB, and verified by file signature rather than the client-declared MIME type. SVG is refused
+at 1 MB, and verified by file signature rather than the client-declared MIME type. The cap is not the
+5 MB originally documented: Next refuses a Server Action request body larger than 1 MiB, so a bigger
+file was rejected before validation and appeared to hang (CLAUDE.md decision 2). SVG is refused
 deliberately. Superseded files are not deleted; orphan cleanup is not implemented.
 
 ## save_product_content()

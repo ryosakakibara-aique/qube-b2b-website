@@ -18,7 +18,29 @@ export function getProductImageBucket(): string {
   );
 }
 
-export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+/**
+ * Next's default Server Action request-body limit, which the cap below has to stay clear of.
+ *
+ * It is a fact about the framework, not a rule of ours: `next.config.ts` does not raise
+ * `experimental.serverActions.bodySizeLimit`, so this is the ceiling on the whole multipart request.
+ * A body over it is refused with a 413 *before* the action runs, so nothing in this module — including
+ * the size check — ever sees it.
+ */
+export const SERVER_ACTION_BODY_LIMIT_BYTES = 1024 * 1024;
+
+/**
+ * The largest image a CMS user may upload.
+ *
+ * Deliberately one megabyte *decimal*, not the 1 MiB the request limit allows. The upload is a
+ * multipart body, so boundaries and part headers travel with the file; a file allowed right up to the
+ * limit would push the request over it and be rejected as a 413 that no code here can report. This
+ * value used to be 5 MB, which the request limit made unreachable — an oversized image was refused
+ * before validation and left the form stuck on "Uploading image...".
+ */
+export const MAX_IMAGE_BYTES = 1000 * 1000;
+
+/** The cap as the interface states it, so the copy and the enforced limit cannot drift apart. */
+export const MAX_IMAGE_SIZE_LABEL = "1 MB";
 
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 

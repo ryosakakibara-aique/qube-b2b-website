@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 import {
   ALLOWED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
+  MAX_IMAGE_SIZE_LABEL,
+  SERVER_ACTION_BODY_LIMIT_BYTES,
   extensionFor,
   getProductImageBucket,
   isAllowedImageType,
@@ -71,8 +73,22 @@ test("rejects a RIFF container that is not WebP", () => {
   assert.equal(matchesImageSignature(riffWave, "image/webp"), false);
 });
 
-test("caps uploads at five megabytes", () => {
-  assert.equal(MAX_IMAGE_BYTES, 5 * 1024 * 1024);
+test("caps uploads below Next's Server Action body limit", () => {
+  assert.equal(MAX_IMAGE_BYTES, 1000 * 1000);
+  assert.equal(MAX_IMAGE_SIZE_LABEL, "1 MB", "the copy has to mean what the cap enforces");
+
+  assert.ok(
+    MAX_IMAGE_BYTES < SERVER_ACTION_BODY_LIMIT_BYTES,
+    "a cap at or above the request limit is unreachable: the 413 is raised before this module's " +
+      "checks run, so the upload appears to hang instead of reporting a size problem. This is " +
+      "exactly what the old 5 MB cap did.",
+  );
+
+  assert.ok(
+    SERVER_ACTION_BODY_LIMIT_BYTES - MAX_IMAGE_BYTES >= 4096,
+    "leave headroom for the multipart boundaries and part headers that travel with the file, or a " +
+      "file allowed right up to the cap pushes the request over the limit",
+  );
 });
 
 test("defaults to the documented bucket and honours the env override", () => {

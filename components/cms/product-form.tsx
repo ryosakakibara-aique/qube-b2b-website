@@ -14,8 +14,20 @@ import {
   sectionImageSlots,
 } from "@/lib/products/validation";
 import type { Product, ProductImage } from "@/lib/products/types";
+import {
+  ALLOWED_IMAGE_TYPES,
+  MAX_IMAGE_BYTES,
+  MAX_IMAGE_SIZE_LABEL,
+} from "@/lib/media/storage";
 
-const ACCEPTED_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+/** Derived from the server's own list, so the file picker cannot drift from what will be accepted. */
+const ACCEPTED_IMAGE_TYPES = ALLOWED_IMAGE_TYPES.join(",");
+
+/** Rounded, and never "0 KB", because the point is to tell the user how far over they are. */
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type DraftSection = {
   id: string;
@@ -129,18 +141,35 @@ function ImageField({
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Checked here as well as on the server so an oversized file is refused immediately, rather than
+    // being uploaded to a limit that was always going to reject it.
+    if (file.size > MAX_IMAGE_BYTES) {
+      if (inputRef.current) inputRef.current.value = "";
+      setUploadError(
+        `Images must be ${MAX_IMAGE_SIZE_LABEL} or smaller. That one is ${formatFileSize(file.size)}.`,
+      );
+      return;
+    }
+
     setUploading(true);
     setUploadError(null);
 
-    const body = new FormData();
-    body.set("file", file);
-    const result = await uploadProductImage(body);
+    try {
+      const body = new FormData();
+      body.set("file", file);
+      const result = await uploadProductImage(body);
 
-    setUploading(false);
-    if (inputRef.current) inputRef.current.value = "";
-
-    if (result.ok) setUrl(result.url);
-    else setUploadError(result.error);
+      if (result.ok) setUrl(result.url);
+      else setUploadError(result.error);
+    } catch {
+      // Anything that rejects — a dropped connection, a request the server refused before the action
+      // ran, a session the proxy no longer accepts — has to clear the spinner and say so. Without
+      // this the field sat on "Uploading image..." forever, with no error and no way to retry.
+      setUploadError("The upload did not complete. Please try again.");
+    } finally {
+      setUploading(false);
+      if (inputRef.current) inputRef.current.value = "";
+    }
   }
 
   return (
@@ -170,6 +199,11 @@ function ImageField({
           />
           <input type="hidden" name={urlName} value={url} />
 
+          {!uploading && !uploadError ? (
+            <p className="mt-1 text-[9px] text-[var(--text-muted)]">
+              PNG, JPEG or WebP, up to {MAX_IMAGE_SIZE_LABEL}.
+            </p>
+          ) : null}
           {uploading ? (
             <p role="status" className="mt-1 text-[9px] text-[var(--text-muted)]">
               Uploading image...

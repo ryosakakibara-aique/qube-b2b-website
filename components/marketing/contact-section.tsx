@@ -1,4 +1,5 @@
 import { ContactForm } from "@/components/marketing/contact-form";
+import { Reveal } from "@/components/motion/reveal";
 
 const highlights = [
   {
@@ -27,7 +28,8 @@ const tileBorders = ["border-b border-r", "border-b", "border-r", ""];
  */
 export function ContactSection({ sourcePath }: { sourcePath: string }) {
   return (
-    <section
+    <Reveal
+      as="section"
       id="contact"
       className="mx-auto grid w-full max-w-[1040px] gap-8 px-6 py-20 lg:grid-cols-2 lg:px-0 lg:py-28"
     >
@@ -44,6 +46,6 @@ export function ContactSection({ sourcePath }: { sourcePath: string }) {
           </article>
         ))}
       </div>
-    </section>
+    </Reveal>
   );
 }

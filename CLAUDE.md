@@ -34,7 +34,10 @@ Do not invent additional screens or features unless explicitly requested or requ
 - React 19
 - TypeScript
 - Tailwind CSS
-- shadcn/ui
+- shadcn/ui — named in this stack, but deliberately **not installed** (D4: V1 needs no dialog,
+  popover, sheet or tab; the primitives in `components/ui/` are hand-rolled)
+- Motion (`motion`, the library formerly published as Framer Motion) — the public pages' motion
+  system, and only there; see decision 12
 - Supabase PostgreSQL
 - Supabase Auth
 - Supabase Storage
@@ -485,8 +488,11 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
    published products only. `BUSINESS_RULES.md`'s Draft → Review → Published workflow, audit log and
    soft delete are deferred — see the status note at the top of that file.
 2. **Media.** Product imagery is uploaded to the Supabase Storage bucket `product-images` (public
-   read, `admin`/`editor` write, PNG/JPEG/WebP, 5 MB cap, verified by file signature). SVG is
-   refused deliberately.
+   read, `admin`/`editor` write, PNG/JPEG/WebP, **1 MB cap**, verified by file signature). The cap was
+   originally 5 MB, which was unreachable: Next refuses a Server Action request body over 1 MiB
+   (`next.config.ts` does not raise `experimental.serverActions.bodySizeLimit`), so a larger image was
+   rejected *before* validation ran, and the upload field — which reset its "uploading" state only on
+   success — appeared to hang. SVG is refused deliberately.
 3. **Contact enquiries.** The three "Talk to an Expert" forms submit to `public.contact_submissions`
    (anonymous insert; **only `admin` may read**, since these rows hold customer PII). They are read
    at `/cms/inquiries`. No CRM integration exists; an optional notification webhook is described in
@@ -521,6 +527,20 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
     [README.md](README.md); `NEXT_PUBLIC_SITE_URL` is that origin, set at build time, which closes
     the canonical-hostname question. CMS-uploaded imagery is served from Supabase Storage rather than
     the instance.
+12. **Motion is a client decision, not a design one (D9).** The design specifies no animation — no
+    duration, easing or transition exists in any frame — so the motion system is an addition, and it
+    is confined to the marketing routes: reveals and micro-interactions only, with no ambient
+    lighting, particles, rotation, pointer tracking or parallax, because those are new visual design
+    rather than motion. It lives in `components/motion/` (one tokens module, one variants module, two
+    primitives, one provider mounted by `app/(marketing)/layout.tsx`), pages compose its variants
+    rather than writing transitions inline, and `MOTION_ENABLED` turns all of the motion off at
+    runtime — behaviour only: the vendor chunks still load, because a runtime constant cannot remove
+    an import, so reclaiming the bytes means reverting the dependency. The hero cascades in over
+    ~630 ms, heading first, and **the heading fade is the accepted largest-contentful-paint cost**:
+    it is the measured element, so it takes the shortest duration in the system and no delay at all
+    (`heroHeading()` accepts no index, which makes that structural). The measured cost
+    is ~32 KB gzipped of vendor JavaScript per marketing page — more than the library documents, which
+    is recorded rather than glossed. Full rationale: [docs/DEVELOPMENT-PHASES.md](docs/DEVELOPMENT-PHASES.md) §1.1 (D9) and Round 14.
 
 ### Known gaps
 
@@ -533,7 +553,22 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   navbar, the H1 leading/tracking below `lg`, the section padding and the 16px form inputs come from
   the existing tokens plus the client's mobile spot-test notes rather than from a mobile frame. Each is
   a single class or one `globals.css` rule, so a corrected mobile export replaces them cheaply.
+- **The motion system is unverified as an experience.** There is no browser in this workspace, so the
+  reveals, the hover and press feedback and the reduced-motion behaviour are unit- and build-verified
+  only; they need the client's device. The vocabulary is deliberately small for that reason.
+  `MOTION_ENABLED = false` removes every animation at runtime and was verified by building with it
+  off; it does not remove the JavaScript.
+- **Motion costs ~32 KB gzipped per marketing page**, measured from the build, against the ~20 KB its
+  documentation predicts for this configuration. If that trade is rejected, the reveals become CSS
+  transitions driven by one `IntersectionObserver` for under 2 KB; see D9.
+- **The hero fade is a deliberate LCP cost.** The heading on `/` and `/products` fades in, and text at
+  `opacity: 0` is not a valid LCP candidate, so the metric lands when the 260 ms fade ends rather than
+  at first paint. The client asked for the fade knowing that; if it is ever walked back, the heading
+  returns to transform-only first (Round 14 follow-up).
 - **Footer link labels** are not recoverable from the reference pack. The footer renders navigation
   targets that are known to exist rather than placeholder link text.
-- **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so those
-  buttons are inert by design rather than by oversight.
+- **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so every
+  card points at `href: "#"` and its "Read Story →" arrow is part of the card's link rather than a
+  control of its own. Per-card redirection, and whether that arrow becomes separately clickable, is the
+  next task at the client's request. The cards keep their own dataset — stories, not the client list in
+  `components/layout/client-logo-grid.tsx` — even though the same eight logo files appear in both.

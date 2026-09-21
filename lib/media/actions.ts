@@ -7,6 +7,7 @@ import {
   isAllowedImageType,
   matchesImageSignature,
   MAX_IMAGE_BYTES,
+  MAX_IMAGE_SIZE_LABEL,
 } from "@/lib/media/storage";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -36,7 +37,7 @@ export async function uploadProductImage(formData: FormData): Promise<UploadImag
     return { ok: false, error: "Upload a PNG, JPEG or WebP image." };
   }
   if (file.size > MAX_IMAGE_BYTES) {
-    return { ok: false, error: "Images must be 5 MB or smaller." };
+    return { ok: false, error: `Images must be ${MAX_IMAGE_SIZE_LABEL} or smaller.` };
   }
 
   const bytes = new Uint8Array(await file.arrayBuffer());

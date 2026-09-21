@@ -69,8 +69,9 @@ These were genuine ambiguities in the repository, not gaps in diligence. Each ma
 architecture, data, security, or user flow, so CLAUDE.md §"Do not silently invent requirements"
 required them to be identified rather than guessed.
 
-**Status: D1, D4, D5 and D8 are resolved** (see §1.1). D2, D3, D6 and D7 still need an input from
-the client or an operator.
+**Status: every decision is now closed except D2 and D3.** D1, D4, D5, D6, D7, D8 and D9 were
+resolved by client decision or engineering judgement (see §1.1); D2 and D3 still need a Figma
+re-export before typography and the mobile frames can be verified.
 
 | ID | Question | Blocks | Why it cannot be inferred |
 | --- | --- | --- | --- |
@@ -82,6 +83,7 @@ the client or an operator.
 | **D6** | **Production hostname.** `product-form.tsx` hardcodes the path prefix `business.qubesmartlockers.com/`; `sitemap.ts`/`robots.ts`/detail metadata fall back to `http://localhost:3000` via `NEXT_PUBLIC_SITE_URL`. The real canonical origin is unconfirmed. | Phase 4 (canonical/OG/sitemap/JSON-LD) | Canonical URLs and structured data must not be fabricated; wrong origin poisons SEO. |
 | **D7** | **Environment + deployment.** No `.env.example` exists, and `.gitignore`'s `.env*` pattern would also ignore one. Is there a Supabase project, and which Vercel project/domain? | Phase 1 (Supabase), Phase 5 | Cannot create or document credentials that were never provided. |
 | **D8** | **Contact form destination.** Three identical "Talk to a QUBE Smart Solution Expert" forms render with no `action`, no handler, and no field `name` attributes — submitting performs a default GET navigation. Where should leads go (Supabase table, email, CRM, external integration)? | Phase 2/4 | CLAUDE.md restricts Route Handlers to real contracts and forbids inventing entities; the destination is a business decision. |
+| **D9** | **Motion.** The design specifies no animation anywhere — no durations, easings or transitions exist in any frame — and the client asked for scroll animations across the user-facing pages. Which system, how much of it, and does adding motion override "do not redesign the Figma UI"? | Phase 5 (public pages) | Every value in a motion system would be invented rather than read from the design, so this is a client decision, not an inference. It also adds a dependency, which CLAUDE.md requires to be justified against the existing stack. |
 
 ---
 
@@ -93,10 +95,11 @@ the client or an operator.
 | **D2** | **Still open — needs a Figma re-export.** Nothing in the repository can resolve typography against the design. [TYPOGRAPHY.md](../TYPOGRAPHY.md) now documents the scale actually implemented, which is derived from code and explicitly not a Figma verification; no type tokens were invented. |
 | **D3** | **Still open.** `docs/design/screenshots/` is absent. The extracted palette/geometry JSON was sufficient for colour and shape work; typography and copy are not recoverable this way. |
 | **D4** | **Resolved by engineering judgement — do not install shadcn/ui yet.** CLAUDE.md mandates a small dependency footprint, and V1 needs no dialog, popover, sheet or tab. The one table is native `<table>`; the switch is a native button with `role="switch"`. Revisit when a real primitive is required. |
-| **D5** | **Resolved by client decision — build the upload.** Bucket `product-images`, public read, `admin`/`editor` write, PNG/JPEG/WebP, 5 MB cap, signature-verified. SVG refused on purpose. |
+| **D5** | **Resolved by client decision — build the upload.** Bucket `product-images`, public read, `admin`/`editor` write, PNG/JPEG/WebP, signature-verified. The cap was set at 5 MB and later corrected to **1 MB** (Round 16): Next's Server Action body limit is 1 MiB, so anything larger was refused before validation and the form appeared to hang. SVG refused on purpose. |
 | **D6** | **Resolved.** The site is hosted on Render at `business.qubesmartlockers.com`. That origin is the documented value for `NEXT_PUBLIC_SITE_URL` and is pre-filled in `render.yaml`; a production build missing the variable now falls back to the production origin rather than localhost, with a warning. The CMS form's hardcoded `business.qubesmartlockers.com/` path prefix is therefore confirmed correct rather than assumed. |
 | **D7** | **Resolved.** The client created the Supabase project, applied both migrations, added an approved user and published a product, so the application now runs against real data. The authenticated write path is exercised through the CMS UI rather than the API here, because no service-role credential exists in this workspace by design. |
 | **D8** | **Resolved by client decision — capture enquiries.** `public.contact_submissions` with anonymous insert and admin-only read, submitted through a validated server action with a honeypot. No CRM or e-mail integration. Live-verified: an anonymous insert returns 201, and an anonymous read returns zero rows. |
+| **D9** | **Resolved by client decision — Motion on the marketing routes only, reveals and micro-interactions only, no new visual design.** `motion` 13 through `LazyMotion` + `m` + `strict`, with a single provider in a new `app/(marketing)/layout.tsx` so `/cms/*` pays nothing; numbers live in `components/motion/tokens.ts` and are mirrored into `globals.css` for the two CSS micro-interactions. The above-the-fold elements fade in as a cascade, heading first, as the client then asked for (see the Round 14 follow-up): this **knowingly gives up the pure-LCP position recorded earlier**, because the heading is the largest contentful paint element on `/` and `/products` and text at `opacity: 0` is not a valid LCP candidate, so the metric now lands when its fade ends rather than at first paint. The heading therefore takes the shortest duration in the system (260ms) and no delay at all, which is structural: `heroHeading()` accepts no index, so it cannot be staggered even by mistake. Route changes fade in from the second navigation onward and never on a hard load; the mobile navigation panel is the one overlay that animates its exit; hover and press feedback stay in CSS so no runtime is involved. Ambient lighting, particles, rotating decoration, pointer tracking and parallax were **excluded** — they are new visual design, which §24 of the brief and CLAUDE.md's "do not redesign the Figma UI" both forbid. Measured cost: the motion runtime is **32.4 KB gzipped** of vendor JavaScript on every marketing page (three chunks), against the ~20 KB the library's own documentation predicts, because Turbopack tree-shakes less aggressively than the Rollup figures it publishes. That is the price of D9. `MOTION_ENABLED` switches every animation off at runtime, but it cannot remove the bytes — a runtime constant cannot remove an import, so the chunks still load; reclaiming them means reverting the dependency. |
 
 ### Deliberate deviations from the documentation
 
@@ -110,6 +113,10 @@ the client or an operator.
 3. **`components/products/` and `components/seo/`** exist alongside the documented component groups,
    and `lib/` is split by domain rather than into a generic `lib/services/`. Recorded in
    [STRUCTURE.md](../STRUCTURE.md) → Deliberate deviations.
+4. **The public pages now contain motion the design does not specify** (D9). "Do not redesign the
+   Figma UI" is preserved in the sense that nothing moves, changes colour, changes type or changes
+   layout at rest — but a scroll animation is still an addition to a design that had none, so it is
+   recorded here rather than presented as fidelity. The whole system is reversible from one value.
 
 ---
 
@@ -550,8 +557,8 @@ loaded at all, which is why the first suite could only reach alias-free modules.
 - `tests/contact-enquiry.test.ts` — required fields, e-mail rejection and acceptance, optional field
   bounds, the honeypot short-circuit, and that a valid enquiry is never silently swallowed.
 - `tests/media-storage.test.ts` — allowed types, extension mapping, genuine PNG/JPEG/WebP headers,
-  type/signature mismatch, truncated payloads, a RIFF container that is not WebP, the 5 MB cap and
-  the bucket env override.
+  type/signature mismatch, truncated payloads, a RIFF container that is not WebP, that the size cap
+  stays below Next's Server Action body limit, and the bucket env override.
 - `tests/site.test.ts` — canonical origin resolution: unset, whitespace, trailing path, trailing
   slash, explicit port, malformed value, and absolute-URL joining.
 - `tests/supabase-config.test.ts` — the project URL is reduced to its origin, covering the
@@ -595,9 +602,11 @@ module-level constant, so the bucket can be overridden and tested without re-imp
   shown an empty CMS. The redirect needs a live session to exercise, so it is unit-tested at the
   decision boundary and code-reviewed.
 - **Deferred by request:** making the carousel slow down (rather than stop) on hover, or advancing it
-  on scroll; and all scroll-triggered animations, which the client placed after the mobile pass
-  (Round 13). Also deferred: the Figma reference exports (D2/D3). The canonical hostname (D6) closed
-  in Round 12.
+  on scroll — Round 14 deliberately left both marquees and the carousel on their existing CSS
+  animation. Also deferred: the Figma reference exports (D2/D3). The canonical hostname (D6) closed in
+  Round 12. Scroll-triggered motion was deferred until after the mobile pass and delivered in Round 14
+  (D9). And the success-story cards have no destinations yet: each needs a real target, plus a decision
+  on whether the arrow is separately clickable (Round 15).
 
 ---
 
@@ -1000,6 +1009,202 @@ than by tapping it. Those items are inferred mobile values throughout, for the r
 if they read wrong on the device, each is one class to adjust. The client deferred scroll animations
 until after this pass ("Let's update this first before adding animations on scroll"), so they remain the
 next round's scope.
+
+---
+
+**Round 14 — the motion system (D9).** The client asked for scroll animations across the public
+pages and approved Motion as the system, with the constraints below. Nothing was redesigned: at rest
+every page is identical to Round 13.
+
+- **Scope, enforced rather than intended.** `MotionProvider` is mounted by a new
+  `app/(marketing)/layout.tsx`, which previously did not exist — adding it is the whole point, since
+  the root layout would have loaded the animation runtime into `/cms/*`. Two tests hold that line:
+  one fails if any file under `app/(cms)` or `components/cms` imports the motion module, the other if
+  the provider is mounted anywhere but that layout.
+- **A vocabulary, not per-component timing.** `components/motion/tokens.ts` holds every duration,
+  easing, distance and stagger; `variants.ts` turns them into the five effects the site uses
+  (`revealRise`, `revealFade`, `heroRise`, `routeEnter`, `panelDrop`). Pages compose those and never
+  write a transition inline. Sixteen new tests pin the rules: that no variant animates anything but
+  `opacity` and `y`, that the stagger is capped so a nine-cell grid cannot still be settling half a
+  second after its first cell, that no duration is long enough to read as slow, and that
+  `globals.css` mirrors the same numbers exactly.
+- **Two primitives that render the element you ask for.** `Reveal` and `HeroReveal` take an `as` prop
+  (`h1`, `section`, `article`, `li`, …) and render that tag instead of wrapping children in a div.
+  This was not cosmetic: several sections are seamless grids whose shared 1px rules and
+  `lg:col-start-*` placement live on the child element, so an inserted wrapper would have moved the
+  grid item and broken the gapless panel the client had just approved. Anchors are deliberately
+  absent from the allowed tags, because these are motion elements rather than Next `<Link>`s and
+  rendering a link through one would replace client-side navigation with a full page load — a test
+  fails if one is ever added.
+- **The largest-contentful-paint rule.** The hero heading is the LCP element on `/` and `/products`,
+  and text at `opacity: 0` is not a valid LCP candidate, so the above-the-fold entrance animates
+  transform only. Verified in the built HTML: the `h1` carries `style="transform:translateY(12px)"`
+  and no opacity, while the below-fold reveals ship hidden. Everything that straddles the fold — the
+  hero video block, the product carousel strip — rises on mount rather than waiting for a scroll
+  trigger, so a half-visible section is never a hole. *(Superseded by the Round 14 follow-up below,
+  which trades this LCP position away at the client's request.)*
+- **Where motion would have broken existing work, it was declined.** Cells in the seamless showcase
+  and features grids fade without moving, because translating one pulls the shared borders apart
+  mid-animation; the sticky workspace card takes no transform; the route wrapper takes no transform
+  either, since a transform on a wrapper containing a whole page becomes the containing block for
+  every fixed-position descendant and would surface later as a broken sticky header somewhere
+  unrelated. The product carousel and both marquees keep their existing CSS animation untouched: the
+  carousel's cards own their inline transition for the tiered resize, and re-implementing that in
+  Motion would have been a rewrite of working code.
+- **Route transitions, enter only.** `app/(marketing)/template.tsx` animates the page in on client
+  navigation and skips the first load entirely (`initial={false}`), so a hard load paints immediately
+  instead of waiting on hydration. There is no exit animation: the App Router discards the outgoing
+  tree, and the frozen-router workaround that an exit needs interferes with streaming and server
+  components.
+- **Micro-interactions stayed in CSS.** Hover lift and press feedback are two utility classes reading
+  the same tokens as the JavaScript, wrapped in `@media (hover: hover)` so a lift cannot stick to a
+  tapped element on a touch screen. A hover state fires on every pointer crossing; paying for a
+  runtime there would be waste.
+- **Reduced motion.** `MotionConfig reducedMotion="user"` removes transform and layout animation for
+  visitors who ask for it, and the primitives pass a zero-length variant on top, so that preference
+  means the element is simply present rather than fading in. The CSS utilities are switched off in
+  the same media query, matching how `globals.css` already treated the skeleton and the marquees.
+- **No JavaScript.** Reveals ship their hidden state in the markup, so the root layout carries a
+  `<noscript>` rule restoring `opacity` and `transform`. Without it, half the landing page would be
+  invisible with scripting off.
+
+**Verified**: 147 tests (16 new), `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0,
+with `/` and `/products` still static and `/products/[product]` still SSG — the new layout and
+template changed no caching behaviour. Twelve checks were read back out of the prerendered HTML,
+including the LCP rule above, the no-JavaScript fallback, and that no CMS page contains a single
+motion attribute. The two most important guards were proved non-vacuous by breaking what they
+protect: adding `opacity` to the hero variant and moving a CSS token each produced the intended
+failure with the intended message, and both were reverted. The escape hatch was exercised rather than
+assumed: with `MOTION_ENABLED = false` the build produces zero hidden reveals, no transform on the
+hero, and a plain `<nav>` for the panel — and still ships the vendor chunks, which is why that
+distinction is written down instead of promised away.
+
+**Cost, measured rather than quoted.** The three vendor chunks carrying the runtime total **32.4 KB
+gzipped**, taking `/` from roughly 27 KB to 59 KB of JavaScript. Motion's own documentation predicts
+about 20 KB for this configuration, measured with Rollup; Turbopack tree-shakes less well, which its
+docs acknowledge. Recorded because it is the real price of the decision rather than the advertised
+one — the alternative, CSS transitions driven by one `IntersectionObserver`, would have cost under
+2 KB.
+
+**Not verified**: there is no browser in this workspace, so how the motion *feels*, the hover and
+press states, and the reduced-motion experience are unconfirmed as pixels and need the client's
+device — the same limitation Round 13 recorded, and the reason the vocabulary is deliberately small.
+One residual risk is worth naming: with JavaScript enabled but the bundle failing to arrive, the
+below-fold reveals would stay hidden. The `<noscript>` rule covers scripting switched off, not a
+failed script; the same class of dependency already exists for the contact form.
+
+**Round 14, follow-up — the hero cascade.** The client asked for the hero to fade rather than only
+rise, and confirmed the cascade over a strict one-at-a-time sequence. The above-the-fold entrance is
+now three roles, 60 ms apart:
+
+| t | Element | Motion |
+| --- | --- | --- |
+| 0 ms | `h1` | opacity 0→1, y 16→0, 260 ms |
+| 60 ms | CTA | opacity 0→1, y 12→0, 300 ms |
+| 120 ms | eyebrow row | opacity 0→1, y 12→0, 300 ms |
+| 180 ms | hero visual | opacity 0→1, y 20→0, scale 0.99→1, 450 ms |
+
+`heroRise` became `heroHeading` / `heroSupport` / `heroVisual`, selected by a `variant` prop on
+`HeroReveal`. Reduced motion is unaffected: the fade collapses to zero duration like the rest of the
+system.
+
+**What that costs, recorded rather than glossed.** The heading is the largest contentful paint element
+on `/` and `/products`, and text at `opacity: 0` is not a valid LCP candidate. Round 14's
+transform-only entrance kept the measured paint at first paint; this one moves it to roughly 260 ms
+later. The client accepted that trade explicitly, and two rules keep it as small as it can be: the
+heading takes the shortest fade in the system, and it takes no index at all — `heroHeading()` has no
+parameter, so a stagger delay cannot reach the measured element even by mistake.
+
+The test that used to assert "the hero never animates opacity" was replaced rather than deleted. It
+now asserts that the fade exists, that the heading is the fastest of the three roles, that its
+duration stays under 300 ms, and that only the visual scales; a second test pins the 0/60/120/180 ms
+order to the storyboard the client approved. Both were proved non-vacuous by setting the heading
+duration to 600 ms, which failed the duration band, the fastest-element rule and the CSS mirror
+together, then reverted.
+
+**Verified in the built markup** by initial style: exactly one element at `translateY(16px)` (the
+heading), two at `translateY(12px)` (CTA and eyebrow), one at `translateY(20px) scale(0.99)` (the
+visual), with the below-fold reveals unchanged at `translateY(20px)` and opacity-only.
+
+**Round 15 — one client-logo list instead of two.** The eight client logos were declared twice, byte
+for byte: once in the hero strip (`hero-video-section.tsx`) and once over the client marquee
+(`client-logo-marquee.tsx`), so a ninth client meant editing two files and keeping them in step by
+hand. Both now map a single `CLIENT_LOGOS` list in `components/layout/client-logo-grid.tsx`.
+
+The two grids are not identical, and the component reproduces all three differences rather than
+normalising them: the gaps (`gap-x-10 gap-y-6` against `gap-x-8 gap-y-4`), the image class (`h-auto
+w-auto` against `h-auto max-h-8 w-auto opacity-90`), and whether each logo sits inside a centring div
+— the hero wraps each one, the marquee does not, because its cells are content-sized. Normalising any
+of those would have been an unrequested visual change, and there is no browser here in which to judge
+it; reconciling them is a design decision.
+
+**Parity was proved rather than assumed.** The two rendered blocks were captured from the previous
+build and compared byte for byte with the new one: 1813 and 1548 characters, both identical. Four new
+checks keep it that way — the list is declared in exactly one place, both instances render the shared
+component and keep no local array, every logo still carries alt text and real dimensions, and the five
+class strings that define the two contexts must all survive.
+
+**The success stories stay a dataset of their own.** They draw on the same eight logo files, but they
+are stories — each with its own destination and its own order — so `success-stories-carousel.tsx`
+keeps its own records rather than becoming a third consumer of the client list. That file now also
+carries the note for the next task: every card points at `href: "#"` and the arrow in "Read Story →"
+is part of the card's link rather than a control of its own.
+
+**Round 15, follow-up — the logos reveal in sequence.** The client asked for each client logo to
+animate one after another as the strip enters the viewport, with opacity and position. Both grids now
+map to `RevealImage` (`components/motion/reveal-image.tsx`), which fades and rises each logo 50 ms
+after the one before it, once, on viewport entry.
+
+Two decisions worth recording:
+
+- **The image animates, not a wrapper around it.** `m.create(Image)` makes the `next/image` element
+  itself the animated node. That matters because the marquee grid's logos *are* their own grid items:
+  wrapping them to animate them would have changed the grid, and the hero strip's centring wrapper had
+  to be preserved rather than normalised. Verified by comparing the rendered blocks with the
+  pre-animation build with the motion attributes stripped — identical in both contexts, with the hero's
+  eight wrapper divs and the marquee's zero both intact.
+- **The sequence is uncapped, deliberately.** The general stagger caps its step count so an open-ended
+  list cannot drag; the logo strip is a fixed eight, so its tail is bounded by construction
+  (7 × 50 ms = 350 ms) and every logo gets its own beat instead of the last three sharing a delay.
+  `logoDelay` is a separate helper for that reason, and a test asserts the variant uses it rather than
+  the capped one.
+
+The strip sits inside a section that already reveals itself, so this reads as a ripple within that
+fade rather than as a second competing entrance. Reduced motion collapses the sequence to zero
+duration like the rest of the system.
+
+**Round 16 — the image upload that hung.** The client reported the CMS upload field stuck on
+"Uploading image...". Two separate faults, and fixing only one would have left the other.
+
+- **Why it failed.** The cap was 5 MB, but Next refuses a Server Action request body larger than
+  `experimental.serverActions.bodySizeLimit`, which defaults to 1 MiB and which `next.config.ts` never
+  raised. An image over that limit was rejected with a 413 *before* `uploadProductImage` ran, so the
+  action's own 5 MB check was unreachable code and no validation message was ever produced. Confirmed
+  against the installed version rather than remembered: `action-handler.js` carries
+  `defaultBodySizeLimit = '1 MB'`, and `config-schema.js` shows the option is still under
+  `experimental`.
+- **Why it hung instead of reporting that.** `handleFile` in `product-form.tsx` called
+  `setUploading(false)` on the success path only, with no `try`/`catch`/`finally`. Any rejection
+  therefore skipped both the reset and the error, leaving the field on "Uploading image..." forever —
+  and because the file input is `disabled={uploading}`, the user could not even retry without
+  reloading the page.
+
+Fixed by the client's decision to make the interface promise match what the server will accept: the cap
+is now **1 MB decimal** (`MAX_IMAGE_BYTES = 1000 * 1000`), deliberately below the 1 MiB request limit
+so the multipart boundaries and part headers that travel with the file cannot push a request over it.
+`MAX_IMAGE_SIZE_LABEL` is exported so the action's message, the field's hint and the refusal copy all
+read from one place; the file picker's `accept` list is derived from the server's allowed types rather
+than a second hard-coded string; an oversized file is refused client-side before a byte is uploaded;
+and `handleFile` gained the guard so any failure clears the spinner and says why. `next.config.ts` was
+deliberately not changed.
+
+Three checks encode what went wrong so it cannot return quietly: the cap must stay below the request
+limit *with headroom*, the reset must live in a `finally`, and the size check must run before the
+spinner starts. Both new guards were proved non-vacuous by restoring the old shapes — the 5 MB cap and
+the success-path-only reset — and watching the intended failures appear, then reverting.
+
+Four places still stated the old cap and were corrected: CLAUDE.md decision 2, DATABASE.md's storage
+section, README.md's media paragraph, and D5 above.
 
 ---
 

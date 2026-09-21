@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Reveal } from "@/components/motion/reveal";
 
 type Feature = {
   title: string;
@@ -29,9 +30,13 @@ const workspaceStats = [
   { label: "Users", value: "143", change: "+16%" },
 ];
 
-function FeatureCard({ title, description }: Feature) {
+function FeatureCard({ title, description, index }: Feature & { index: number }) {
   return (
-    <article className="w-full shrink-0 rounded-[32px] border border-[#cbd5e1] p-3">
+    <Reveal
+      as="article"
+      index={index}
+      className="w-full shrink-0 rounded-[32px] border border-[#cbd5e1] p-3"
+    >
       <div
         className="h-[280px] w-full rounded-[20px] bg-[#e2e8f0] sm:h-[400px]"
         aria-hidden="true"
@@ -48,13 +53,19 @@ function FeatureCard({ title, description }: Feature) {
           Learn More
         </Link>
       </div>
-    </article>
+    </Reveal>
   );
 }
 
 function WorkspacePreviewCard() {
   return (
-    <aside className="w-full shrink-0 rounded-[32px] border border-[#cbd5e1] bg-[#f1f5f9] p-3 lg:sticky lg:top-8 lg:w-80">
+    /* Fade rather than rise: this card is sticky from `lg` up, and a transform on a sticky element
+       is one of the few places engines still disagree about, so it never gets one. */
+    <Reveal
+      as="aside"
+      variant="fade"
+      className="w-full shrink-0 rounded-[32px] border border-[#cbd5e1] bg-[#f1f5f9] p-3 lg:sticky lg:top-8 lg:w-80"
+    >
       <div className="rounded-[20px] bg-[#e2e8f0] p-3">
         <span className="inline-flex rounded-lg border-[0.5px] border-[#00c290] bg-gradient-to-b from-[#00c290]/30 via-[49.519%] via-[#0fb8aa]/30 to-[#1fadc5]/30 px-3 py-1">
           <span className="bg-gradient-to-b from-[#00c290] via-[49.519%] via-[#0fb8aa] to-[#1fadc5] bg-clip-text text-[10px] font-medium text-transparent">
@@ -89,14 +100,18 @@ function WorkspacePreviewCard() {
           </span>
         </p>
       </div>
-    </aside>
+    </Reveal>
   );
 }
 
 export function ParallaxFeaturesSection() {
   return (
     <div className="w-full">
-      <div className="flex flex-col gap-6 pb-6 sm:flex-row sm:items-start sm:justify-between">
+      <Reveal
+        as="div"
+        index={0}
+        className="flex flex-col gap-6 pb-6 sm:flex-row sm:items-start sm:justify-between"
+      >
         <h2 className="max-w-[500px] text-3xl font-semibold leading-9 text-[#27272a]">
           Products that prioritizes experience &amp; boosts efficiency
         </h2>
@@ -106,11 +121,11 @@ export function ParallaxFeaturesSection() {
         >
           Check our product suite
         </Link>
-      </div>
+      </Reveal>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-start">
         <div className="flex w-full flex-col gap-6 lg:h-fit lg:flex-1 lg:overflow-y-auto lg:pr-1 scrollbar-none ">
-          {features.map((feature) => (
-            <FeatureCard key={feature.title} {...feature} />
+          {features.map((feature, index) => (
+            <FeatureCard key={feature.title} index={index} {...feature} />
           ))}
         </div>
         <WorkspacePreviewCard />
