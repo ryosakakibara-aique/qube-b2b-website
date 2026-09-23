@@ -26,6 +26,8 @@ test("maps a row to the domain shape", () => {
   assert.deepEqual(product.tags, ["smart locker", "enterprise"]);
   assert.equal(product.imageUrl, "https://example.test/hero.png");
   assert.equal(product.imageAlt, "A QUBE locker");
+  assert.equal(product.cardImageUrl, "https://example.test/card.png");
+  assert.equal(product.cardImageAlt, "A single locker");
   assert.equal(product.ctaLabel, "Talk to an Expert");
   assert.equal(product.published, true);
   assert.equal(product.updatedAt, "2026-01-02T03:04:05.000Z");
@@ -50,12 +52,16 @@ test("tolerates null columns without inventing values", () => {
     tags: null,
     image_url: null,
     image_alt: null,
+    card_image_url: null,
+    card_image_alt: null,
     product_content_sections: null,
   });
 
   assert.deepEqual(product.tags, []);
   assert.equal(product.imageUrl, undefined);
   assert.equal(product.imageAlt, undefined);
+  assert.equal(product.cardImageUrl, undefined);
+  assert.equal(product.cardImageAlt, undefined);
   assert.deepEqual(product.contentSections, []);
 });
 

@@ -82,6 +82,8 @@ export async function saveProduct(
     p_tags: payload.tags,
     p_image_url: payload.imageUrl,
     p_image_alt: payload.imageAlt,
+    p_card_image_url: payload.cardImageUrl,
+    p_card_image_alt: payload.cardImageAlt,
     p_acquisition: payload.acquisition,
     p_locations: payload.locations,
     p_cta_label: payload.ctaLabel,

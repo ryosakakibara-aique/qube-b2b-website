@@ -45,8 +45,12 @@ export type ProductPayload = {
   slug: string;
   description: string;
   tags: string[];
+  /** The hero image: the product page banner, link previews and structured data. */
   imageUrl: string | null;
   imageAlt: string | null;
+  /** The card image: the square tile in the `/products` carousel. Independent of the hero. */
+  cardImageUrl: string | null;
+  cardImageAlt: string | null;
   acquisition: string;
   locations: string;
   ctaLabel: string;
@@ -61,6 +65,31 @@ export type ProductValidation =
 function text(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+/**
+ * A url and its alt text travel together, whichever field they belong to.
+ *
+ * An image without a description is inaccessible; a description without an image is left over from
+ * one that was removed, and storing it would put text in the database that describes nothing. The two
+ * rules are one helper because they are one rule, and because it was previously written out three
+ * times — twice for the product images and once per content-section image — where they could drift.
+ */
+function checkImagePair(
+  fieldErrors: Record<string, string>,
+  altField: string,
+  url: string,
+  alt: string,
+): void {
+  if (alt.length > MAX_ALT_LENGTH) {
+    fieldErrors[altField] = `Keep image descriptions under ${MAX_ALT_LENGTH} characters.`;
+  }
+
+  if (url && !alt) {
+    fieldErrors[altField] = "Describe this image for screen readers.";
+  } else if (!url && alt) {
+    fieldErrors[altField] = "Upload the image before describing it.";
+  }
 }
 
 export function parseProductForm(formData: FormData): ProductValidation {
@@ -98,11 +127,13 @@ export function parseProductForm(formData: FormData): ProductValidation {
 
   const imageUrl = text(formData, "imageUrl");
   const imageAlt = text(formData, "imageAlt");
-  if (imageUrl && !imageAlt) {
-    fieldErrors.imageAlt = "Describe the product image for screen readers.";
-  } else if (imageAlt.length > MAX_ALT_LENGTH) {
-    fieldErrors.imageAlt = `Keep image descriptions under ${MAX_ALT_LENGTH} characters.`;
-  }
+  checkImagePair(fieldErrors, "imageAlt", imageUrl, imageAlt);
+
+  // The card image is a field of its own, not a fallback for the hero: a product may have either,
+  // both, or neither, and an empty card image renders a card with no picture.
+  const cardImageUrl = text(formData, "cardImageUrl");
+  const cardImageAlt = text(formData, "cardImageAlt");
+  checkImagePair(fieldErrors, "cardImageAlt", cardImageUrl, cardImageAlt);
 
   const requestedCount = Number.parseInt(text(formData, "sectionCount") || "0", 10);
   const sectionCount = Number.isFinite(requestedCount)
@@ -127,15 +158,7 @@ export function parseProductForm(formData: FormData): ProductValidation {
       const alt = text(formData, `content${position}Image${slot}Alt`);
       const altField = `content${position}Image${slot}Alt`;
 
-      if (alt.length > MAX_ALT_LENGTH) {
-        fieldErrors[altField] = `Keep image descriptions under ${MAX_ALT_LENGTH} characters.`;
-      }
-
-      if (url && !alt) {
-        fieldErrors[altField] = "Describe this image for screen readers.";
-      } else if (!url && alt) {
-        fieldErrors[altField] = "Upload the image before describing it.";
-      }
+      checkImagePair(fieldErrors, altField, url, alt);
 
       if (url) images.push({ url, alt });
     }
@@ -159,6 +182,8 @@ export function parseProductForm(formData: FormData): ProductValidation {
       tags,
       imageUrl: imageUrl || null,
       imageAlt: imageAlt || null,
+      cardImageUrl: cardImageUrl || null,
+      cardImageAlt: cardImageAlt || null,
       acquisition: text(formData, "acquisition"),
       locations: text(formData, "locations"),
       ctaLabel: text(formData, "ctaLabel"),

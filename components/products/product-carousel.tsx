@@ -227,11 +227,11 @@ export function ProductCarousel({ products }: { products: Product[] }) {
                 }}
               >
                 <span className="sr-only">
-                  {product.imageAlt ?? product.title}
+                  {product.cardImageAlt ?? product.title}
                 </span>
-                {product.imageUrl ? (
+                {product.cardImageUrl ? (
                   <Image
-                    src={product.imageUrl}
+                    src={product.cardImageUrl}
                     alt=""
                     fill
                     className="object-contain"

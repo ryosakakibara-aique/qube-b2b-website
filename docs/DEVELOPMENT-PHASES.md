@@ -1357,6 +1357,37 @@ underneath that is what remains if an image cannot load.
   `object-cover`. The shape check is the one that matters: a swap would otherwise look perfectly correct
   in review while showing a portrait photograph in a landscape tile.
 
+**Round 19 — the card image gets a field of its own.** The `/products` carousel and the product page
+banner were served by one column, so one of the two always lost something: a square asset had 61% of its
+height cropped away by the wide banner. They are now two independent fields.
+
+- **`image_url` became the hero image**, and `card_image_url` / `card_image_alt` were added beside it.
+  The column was deliberately *not* renamed: the running application selects `image_url` by name, so a
+  rename would have made the migration and the deploy inseparable. Only the CMS label changed.
+- **Both nullable, with no fallback between them** — the client's decision, taken with its consequence
+  in view: a product with no card image renders a card with no picture. Their nine existing products are
+  exactly that until a card image is uploaded for each, which the built output confirms: `/products`
+  contains no carousel images today.
+- **The migration is split so that no window is broken.** `003_card_and_hero_images.sql` adds the
+  columns and creates a fourteen-parameter `save_product_content` **while leaving the twelve-parameter
+  version in place**; PostgREST resolves a call by the argument names it is given, so the running deploy
+  keeps saving throughout. `004_drop_legacy_save_product_content.sql` retires the old overload once the
+  new deploy is confirmed. Deploying the code *before* applying 003 would break every product read,
+  because the select list names a column that would not exist yet.
+- **The section-image guidance was wrong and is now fixed.** The three upload fields share one
+  component, so the hero, the card and every content-section image now carry their own shape note and
+  their own "smaller than recommended" threshold. Section images had been inheriting the square
+  product-image note while being displayed in a wide `h-64` gallery; they ask for 1000 × 500 now.
+- **A wiring check now exists.** The documentation had claimed a static cross-check that the save
+  arguments match the SQL signature, but no test implemented it. `tests/product-save-wiring.test.ts`
+  does: the declared parameters must equal the sent arguments name for name, and every field of the
+  validated payload must be read when the call is built — the failure mode being a field that looks
+  saved and silently is not. It was proved non-vacuous by deleting one argument and watching the
+  intended two failures appear, then restoring it.
+
+**Verified**: 177 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0, with `/` and
+`/products` still static and the product routes still prerendered.
+
 ---
 
 ## Appendix A — Verification command cookbook

@@ -4,10 +4,12 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   ALLOWED_IMAGE_TYPES,
+  CARD_IMAGE_NOTE,
+  CARD_IMAGE_SIZE,
+  HERO_IMAGE_NOTE,
+  HERO_IMAGE_SIZE,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_SIZE_LABEL,
-  RECOMMENDED_IMAGE_NOTE,
-  RECOMMENDED_IMAGE_SIZE,
   SERVER_ACTION_BODY_LIMIT_BYTES,
   extensionFor,
   getProductImageBucket,
@@ -110,22 +112,30 @@ test("caps uploads below Next's Server Action body limit", () => {
   );
 });
 
-test("states the recommended upload size for product images", () => {
-  // Pins the reasoning, not the wording. The two views differ in kind: the carousel is a square box
-  // using object-contain, so nothing is lost there, while the product page banner is a wide
-  // object-cover band that centre-crops whatever it is given. The banner is therefore the view that
-  // constrains the source: it has to clear 1040px, and is set for roughly 2x.
-  assert.equal(
-    RECOMMENDED_IMAGE_SIZE.width,
-    RECOMMENDED_IMAGE_SIZE.height,
-    "the carousel box is square and contains rather than crops, so a square source fills it with no " +
-      "letterboxing; the hero banner is the view that crops",
+test("states the recommended upload size for each product image field", () => {
+  // Pins the reasoning, not the wording. Each field now has one job, so each can ask for the shape it
+  // is actually displayed at: the hero is a wide banner up to 1040px wide, centre-cropped, and the
+  // card is a 210px square that contains rather than crops.
+  assert.ok(
+    HERO_IMAGE_SIZE.width >= 1040,
+    "below the banner width the hero would be upscaled on the product page",
   );
   assert.ok(
-    RECOMMENDED_IMAGE_SIZE.width >= 1040,
-    "below the banner width the same file would be upscaled on the product page",
+    HERO_IMAGE_SIZE.width > HERO_IMAGE_SIZE.height,
+    "the hero is the wide banner, so its guidance must be wider than it is tall",
   );
-  assert.match(RECOMMENDED_IMAGE_NOTE, /2000 × 2000 px/);
+  assert.match(HERO_IMAGE_NOTE, /Wide, 2000 × 800 px/);
+
+  assert.equal(
+    CARD_IMAGE_SIZE.width,
+    CARD_IMAGE_SIZE.height,
+    "the card is a square tile, so a square source fills it with no letterboxing",
+  );
+  assert.ok(
+    CARD_IMAGE_SIZE.width >= 420,
+    "the card displays at 210px, so 420 covers a high-density screen",
+  );
+  assert.match(CARD_IMAGE_NOTE, /Square, 420 × 420 px/);
 });
 
 test("defaults to the documented bucket and honours the env override", () => {

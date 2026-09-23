@@ -108,6 +108,8 @@ export const productRow = {
   tags: ["smart locker", "enterprise"],
   image_url: "https://example.test/hero.png",
   image_alt: "A QUBE locker",
+  card_image_url: "https://example.test/card.png",
+  card_image_alt: "A single locker",
   acquisition: "Talk to an expert",
   locations: "Multiple",
   cta_label: "Talk to an Expert",

@@ -494,8 +494,13 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
    was unreachable — an oversized image was rejected *before* validation ran, and the upload field,
    which reset its "uploading" state on the success path only, appeared to hang. The extra megabyte
    is headroom for the multipart boundaries and part headers. A test reads the config and fails if the
-   two ever disagree. Around 2000 px square is the recommended upload, because the product page shows
-   the same file as a banner up to 1040 px wide. SVG is refused deliberately.
+   two ever disagree. SVG is refused deliberately.
+   **Two product image fields, not one.** `image_url` is the **hero** — the product page banner,
+   related tiles, Open Graph and structured data — and `card_image_url` is the **card**, the square
+   `/products` carousel tile. Both are nullable and there is **no fallback between them**, so a product
+   with no card image renders a card with no picture; that is a deliberate choice, and it is why the
+   existing products need card images uploaded. Each asks for the shape it is displayed at: hero
+   2000 × 800 or larger, card 420 × 420 or larger, content-section images 1000 × 500 or larger.
 3. **Contact enquiries.** The three "Talk to an Expert" forms submit to `public.contact_submissions`
    (anonymous insert; **only `admin` may read**, since these rows hold customer PII). They are read
    at `/cms/inquiries`. No CRM integration exists; an optional notification webhook is described in
@@ -577,6 +582,13 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   `components/layout/pandora-showcase-grid.tsx`. Their alt text is empty by design — the label beside
   each image already names the feature — so send per-image descriptions if they should be described
   instead.
+- **The existing products have no card image, and nothing falls back.** They predate the field, so
+  their `/products` carousel tiles render without a picture until one is uploaded per product. This is
+  visible on the live site rather than a latent issue, and the fix is content, not code.
+- **The card-image migration has an order.** `003_card_and_hero_images.sql` adds the columns and the
+  fourteen-parameter `save_product_content`, and must run **before** the deploy whose select list names
+  `card_image_url` — deploying first breaks every product read. `004_drop_legacy_save_product_content.sql`
+  drops the twelve-parameter overload and runs **after** that deploy is confirmed.
 - **Footer link labels** are not recoverable from the reference pack. The footer renders navigation
   targets that are known to exist rather than placeholder link text.
 - **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so every

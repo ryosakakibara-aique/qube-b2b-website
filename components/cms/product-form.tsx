@@ -16,10 +16,14 @@ import {
 import type { Product, ProductImage } from "@/lib/products/types";
 import {
   ALLOWED_IMAGE_TYPES,
+  CARD_IMAGE_NOTE,
+  CARD_IMAGE_SIZE,
+  HERO_IMAGE_NOTE,
+  HERO_IMAGE_SIZE,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_SIZE_LABEL,
-  RECOMMENDED_IMAGE_NOTE,
-  RECOMMENDED_IMAGE_SIZE,
+  SECTION_IMAGE_NOTE,
+  SECTION_IMAGE_SIZE,
 } from "@/lib/media/storage";
 
 /** Derived from the server's own list, so the file picker cannot drift from what will be accepted. */
@@ -147,6 +151,8 @@ function Field({
 
 function ImageField({
   label,
+  hint,
+  minimum,
   urlName,
   altName,
   initialUrl,
@@ -154,6 +160,10 @@ function ImageField({
   altError,
 }: {
   label: string;
+  /** The shape this particular field wants, since the hero and the card are shown differently. */
+  hint: string;
+  /** The same guidance as numbers, for the "smaller than recommended" note. */
+  minimum: { width: number; height: number };
   urlName: string;
   altName: string;
   initialUrl?: string;
@@ -238,8 +248,7 @@ function ImageField({
 
           {!uploading && !uploadError ? (
             <p className="mt-1 text-[9px] text-[var(--text-muted)]">
-              PNG, JPEG or WebP, up to {MAX_IMAGE_SIZE_LABEL} —{" "}
-              {RECOMMENDED_IMAGE_NOTE}.
+              PNG, JPEG or WebP, up to {MAX_IMAGE_SIZE_LABEL} — {hint}.
             </p>
           ) : null}
           {uploading ? (
@@ -250,8 +259,7 @@ function ImageField({
           {size && !uploading ? (
             <p role="status" className="mt-1 text-[9px] text-[var(--text-muted)]">
               {size.width} × {size.height} px
-              {size.width < RECOMMENDED_IMAGE_SIZE.width ||
-              size.height < RECOMMENDED_IMAGE_SIZE.height ? (
+              {size.width < minimum.width || size.height < minimum.height ? (
                 <span className="ml-1 text-red-700">
                   — smaller than recommended
                 </span>
@@ -276,8 +284,10 @@ function ImageField({
             </button>
           ) : null}
 
+          {/* Named after its own field: with a hero and a card on one form, "Image alt" twice over
+              tells a screen-reader user nothing about which image they are describing. */}
           <label htmlFor={altName} className="mt-2 block text-[10px]">
-            Image alt
+            {label} alt
           </label>
           <input
             id={altName}
@@ -481,6 +491,8 @@ function ContentEditor({
                 <ImageField
                   key={urlName}
                   label={`Image ${slot}`}
+                  hint={SECTION_IMAGE_NOTE}
+                  minimum={SECTION_IMAGE_SIZE}
                   urlName={urlName}
                   altName={altName}
                   initialUrl={section.images[slotIndex]?.url}
@@ -569,14 +581,31 @@ export function ProductForm({
           ) : null}
         </div>
 
-        <div className="border-t border-[var(--border-subtle)] pt-4">
+        <div className="space-y-6 border-t border-[var(--border-subtle)] pt-4">
           <ImageField
-            label="Product Image"
+            label="Hero Image"
+            hint={HERO_IMAGE_NOTE}
+            minimum={HERO_IMAGE_SIZE}
             urlName="imageUrl"
             altName="imageAlt"
             initialUrl={product.imageUrl}
             initialAlt={product.imageAlt}
             altError={errors.imageAlt}
+          />
+          {/*
+            A field of its own, not a fallback for the hero: the two are shown at different shapes, so
+            a product may carry either, both, or neither. An empty card image renders a card with no
+            picture.
+          */}
+          <ImageField
+            label="Card Image"
+            hint={CARD_IMAGE_NOTE}
+            minimum={CARD_IMAGE_SIZE}
+            urlName="cardImageUrl"
+            altName="cardImageAlt"
+            initialUrl={product.cardImageUrl}
+            initialAlt={product.cardImageAlt}
+            altError={errors.cardImageAlt}
           />
         </div>
 

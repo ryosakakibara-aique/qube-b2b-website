@@ -41,23 +41,35 @@ export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 export const MAX_IMAGE_SIZE_LABEL = "5 MB";
 
 /**
- * What a product image should be uploaded at.
+ * What each image field should be uploaded at.
  *
- * Derived from how the file is actually displayed, not from the design:
+ * Derived from how the file is displayed, not from the design. Now that the two jobs have a field
+ * each, each can ask for the shape it is actually shown at, rather than one asset compromising
+ * between a wide banner and a square card:
  *
- * - the product carousel on `/products` shows it as a **210px square** (`product-carousel.tsx`), and
- * - the product page shows the same file as a full-width banner up to **1040 × 408**, centre-cropped
- *   (`app/(marketing)/products/[product]/page.tsx`).
- *
- * The banner is the binding constraint: covering 1040px on a high-density screen needs about 2080px
- * of source, so the guidance is a 2000px square. The carousel would be satisfied by far less, but it
- * receives the same file. At this size a JPEG or WebP sits well inside the 5 MB cap; a PNG of the
- * same dimensions may not.
+ * - the **hero** is the banner on the product page, up to 1040 × 408 and centre-cropped
+ *   (`app/(marketing)/products/[product]/page.tsx`), so a wide source of about twice that stays sharp
+ *   on a high-density screen;
+ * - the **card** is the 210px square in the `/products` carousel (`product-carousel.tsx`), which
+ *   contains rather than crops, so a square of about twice 210 fills it exactly.
  */
-export const RECOMMENDED_IMAGE_SIZE = { width: 2000, height: 2000 } as const;
+export const HERO_IMAGE_SIZE = { width: 2000, height: 800 } as const;
+export const CARD_IMAGE_SIZE = { width: 420, height: 420 } as const;
 
-/** Shown beside the upload field, so an author knows what to prepare. */
-export const RECOMMENDED_IMAGE_NOTE = `Square, ${RECOMMENDED_IMAGE_SIZE.width} × ${RECOMMENDED_IMAGE_SIZE.height} px or larger`;
+/** Shown beside each upload field, so an author knows what to prepare. */
+export const HERO_IMAGE_NOTE = `Wide, ${HERO_IMAGE_SIZE.width} × ${HERO_IMAGE_SIZE.height} px or larger`;
+export const CARD_IMAGE_NOTE = `Square, ${CARD_IMAGE_SIZE.width} × ${CARD_IMAGE_SIZE.height} px or larger`;
+
+/**
+ * Content-section images, which are a gallery rather than a single slot.
+ *
+ * The product page renders them in a grid of `h-64` (256px) frames, two to a row on wide screens, so
+ * each is roughly 510 × 256 and `object-cover` crops to that. Wide is therefore right here too — and
+ * these fields previously inherited the square product-image guidance, which was simply wrong for
+ * them.
+ */
+export const SECTION_IMAGE_SIZE = { width: 1000, height: 500 } as const;
+export const SECTION_IMAGE_NOTE = `Wide, ${SECTION_IMAGE_SIZE.width} × ${SECTION_IMAGE_SIZE.height} px or larger`;
 
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 

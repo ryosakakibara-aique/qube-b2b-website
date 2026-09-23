@@ -9,6 +9,8 @@ Applied migrations:
 | --- | --- |
 | `001_products.sql` | `products`, `product_content_sections` |
 | `002_publication_roles_media.sql` | `profiles` + roles, product publication, section image galleries, Storage bucket, `contact_submissions`, `save_product_content()` |
+| `003_card_and_hero_images.sql` | `products.card_image_url` / `card_image_alt`, and a fourteen-parameter `save_product_content()` alongside the twelve-parameter one |
+| `004_drop_legacy_save_product_content.sql` | drops the twelve-parameter overload — **apply only after** the deploy that uses the new signature is live and a save has been confirmed |
 
 This file describes what exists. It is not a proposal — the older `User` / `Page` / `Media` /
 `AuditLog` draft was removed because none of those entities are required by the confirmed screens.
@@ -125,24 +127,38 @@ Bucket `product-images` (public read). Bucket name is overridable with
 at 5 MB, and verified by file signature rather than the client-declared MIME type. The cap is enforced
 inside the action, and the request carrying it is only allowed through because `next.config.ts` raises
 the Server Action body limit to 6 MB — at Next's 1 MiB default a larger image was refused before
-validation and the upload field appeared to hang (CLAUDE.md decision 2). A square of around 2000 px is
-the recommended upload, since the product page shows the same file as a banner up to 1040 px wide,
-centre-cropped. SVG is refused deliberately. Superseded files are not deleted; orphan cleanup is not
-implemented.
+validation and the upload field appeared to hang (CLAUDE.md decision 2).
+
+There are two product image fields, each asking for the shape it is displayed at: the **hero**
+(`image_url` / `image_alt`) is the wide banner up to 1040 × 408, so 2000 × 800 or larger; the **card**
+(`card_image_url` / `card_image_alt`) is the 210px square in the `/products` carousel, so 420 × 420 or
+larger. Content-section images are a wide gallery (`h-64` frames) and ask for 1000 × 500 or larger.
+Both product fields are nullable and independent — there is no fallback between them, so a product with
+no card image renders a card with no picture. SVG is refused deliberately. Superseded files are not
+deleted; orphan cleanup is not implemented.
 
 ## save_product_content()
 
 ```
 save_product_content(
   p_id uuid, p_title text, p_slug text, p_description text, p_tags text[], p_image_url text,
-  p_image_alt text, p_acquisition text, p_locations text, p_cta_label text, p_published boolean,
-  p_sections jsonb
+  p_image_alt text, p_card_image_url text, p_card_image_alt text, p_acquisition text,
+  p_locations text, p_cta_label text, p_published boolean, p_sections jsonb
 ) returns uuid
 ```
 
 Creates or updates a product and replaces its content sections in a single transaction.
 `security invoker`, so RLS still applies to the caller. This exists because a delete-then-insert
 performed as separate HTTP calls could fail halfway and destroy authored content.
+
+**Two overloads exist between migrations 003 and 004, deliberately.** To Postgres a changed parameter
+list is a new function rather than a replacement, and PostgREST resolves a call by the argument names
+it is given, so the deployed application keeps calling the twelve-parameter version while the new code
+calls the fourteen-parameter one. Neither is ambiguous, and a save from a browser still running the old
+code cannot wipe the new columns because that function's insert and update do not name them.
+
+`revoke execute … from anon` is repeated for the new signature: grants are per-signature, and a newly
+created function is executable by `PUBLIC` until revoked.
 
 ## Not implemented
 

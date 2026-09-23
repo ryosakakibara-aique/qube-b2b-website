@@ -126,6 +126,54 @@ test("keeps the product image and its alt text together", () => {
   assert.equal(payload.imageAlt, "A QUBE locker in a lobby");
 });
 
+test("the card image is a field of its own, not a fallback for the hero", () => {
+  const both = expectOk(
+    parseProductForm(
+      minimal({
+        imageUrl: "https://example.test/hero.png",
+        imageAlt: "A wide shot of a locker bank",
+        cardImageUrl: "https://example.test/card.png",
+        cardImageAlt: "A single locker",
+      }),
+    ),
+  );
+
+  assert.equal(both.imageUrl, "https://example.test/hero.png");
+  assert.equal(both.cardImageUrl, "https://example.test/card.png");
+  assert.equal(both.cardImageAlt, "A single locker");
+
+  const heroOnly = expectOk(
+    parseProductForm(minimal({ imageUrl: "https://example.test/h.png", imageAlt: "H" })),
+  );
+  assert.equal(
+    heroOnly.cardImageUrl,
+    null,
+    "a hero image must not be copied into the card: the client asked for two independent fields",
+  );
+  assert.equal(heroOnly.cardImageAlt, null);
+
+  const cardOnly = expectOk(
+    parseProductForm(minimal({ cardImageUrl: "https://example.test/c.png", cardImageAlt: "C" })),
+  );
+  assert.equal(cardOnly.imageUrl, null, "and the card must not be copied into the hero");
+
+  const neither = expectOk(parseProductForm(minimal()));
+  assert.equal(neither.imageUrl, null);
+  assert.equal(neither.cardImageUrl, null);
+});
+
+test("the card image is validated like any other image", () => {
+  assert.ok(
+    expectErrors(parseProductForm(minimal({ cardImageUrl: "https://example.test/card.png" })))
+      .cardImageAlt,
+    "an image without a description is inaccessible",
+  );
+  assert.ok(
+    expectErrors(parseProductForm(minimal({ cardImageAlt: "Orphaned" }))).cardImageAlt,
+    "a description with no image describes nothing and is left over from a removed one",
+  );
+});
+
 test("bounds the long content block at its documented limit", () => {
   const atLimit = expectOk(
     parseProductForm(

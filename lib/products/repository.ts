@@ -14,6 +14,8 @@ export const PRODUCT_SELECT = [
   "tags",
   "image_url",
   "image_alt",
+  "card_image_url",
+  "card_image_alt",
   "acquisition",
   "locations",
   "cta_label",
@@ -45,6 +47,8 @@ export type ProductRow = {
   tags: string[] | null;
   image_url: string | null;
   image_alt: string | null;
+  card_image_url: string | null;
+  card_image_alt: string | null;
   acquisition: string;
   locations: string;
   cta_label: string;
@@ -78,6 +82,8 @@ export function mapProduct(row: ProductRow): Product {
     tags: row.tags ?? [],
     imageUrl: row.image_url ?? undefined,
     imageAlt: row.image_alt ?? undefined,
+    cardImageUrl: row.card_image_url ?? undefined,
+    cardImageAlt: row.card_image_alt ?? undefined,
     acquisition: row.acquisition,
     locations: row.locations,
     ctaLabel: row.cta_label,

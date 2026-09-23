@@ -251,8 +251,15 @@ revalidate the affected public paths.
 
 Media uploads are restricted to PNG, JPEG and WebP, capped at 5 MB, and verified by file signature
 rather than the browser-declared MIME type. `next.config.ts` raises the Server Action body limit to
-6 MB so that cap is actually reachable, and the CMS asks for a square image of around 2000 px. SVG is
-refused deliberately.
+6 MB so that cap is actually reachable. A product carries two images, each with its own shape: a
+**hero** for the product page banner and link previews (wide, 2000 × 800 or larger) and a **card** for
+the `/products` carousel tile (square, 420 × 420 or larger). Both are optional, and neither falls back
+to the other — a product with no card image shows a card with no picture. SVG is refused deliberately.
+
+**Migration order for the card image:** apply `003_card_and_hero_images.sql` **before** deploying the
+code that uses the field, because the code selects `card_image_url` by name and a missing column breaks
+every product read. Apply `004_drop_legacy_save_product_content.sql` **after** that deploy is confirmed
+and a save has worked.
 
 ## Project documentation
 
