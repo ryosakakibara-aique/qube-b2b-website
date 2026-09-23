@@ -19,28 +19,45 @@ export function getProductImageBucket(): string {
 }
 
 /**
- * Next's default Server Action request-body limit, which the cap below has to stay clear of.
+ * The Server Action request-body limit, as configured in `next.config.ts`.
  *
- * It is a fact about the framework, not a rule of ours: `next.config.ts` does not raise
- * `experimental.serverActions.bodySizeLimit`, so this is the ceiling on the whole multipart request.
- * A body over it is refused with a 413 *before* the action runs, so nothing in this module — including
- * the size check — ever sees it.
+ * Recorded here rather than only in the config because the image cap below has to stay under it, and
+ * that relationship is what stops the upload field from promising a file the server will refuse. A
+ * test reads `next.config.ts` and fails if the two disagree. Next's own default is 1 MiB, which is
+ * what made the original 5 MB cap unreachable.
  */
-export const SERVER_ACTION_BODY_LIMIT_BYTES = 1024 * 1024;
+export const SERVER_ACTION_BODY_LIMIT_BYTES = 6 * 1024 * 1024;
 
 /**
  * The largest image a CMS user may upload.
  *
- * Deliberately one megabyte *decimal*, not the 1 MiB the request limit allows. The upload is a
- * multipart body, so boundaries and part headers travel with the file; a file allowed right up to the
- * limit would push the request over it and be rejected as a 413 that no code here can report. This
- * value used to be 5 MB, which the request limit made unreachable — an oversized image was refused
- * before validation and left the form stuck on "Uploading image...".
+ * Five megabytes, which the client asked for. It has to stay below the request-body limit above with
+ * room for the multipart boundaries and part headers that travel with the file, or a maximum-size
+ * image would be refused as a 413 that no code here can report.
  */
-export const MAX_IMAGE_BYTES = 1000 * 1000;
+export const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 /** The cap as the interface states it, so the copy and the enforced limit cannot drift apart. */
-export const MAX_IMAGE_SIZE_LABEL = "1 MB";
+export const MAX_IMAGE_SIZE_LABEL = "5 MB";
+
+/**
+ * What a product image should be uploaded at.
+ *
+ * Derived from how the file is actually displayed, not from the design:
+ *
+ * - the product carousel on `/products` shows it as a **210px square** (`product-carousel.tsx`), and
+ * - the product page shows the same file as a full-width banner up to **1040 × 408**, centre-cropped
+ *   (`app/(marketing)/products/[product]/page.tsx`).
+ *
+ * The banner is the binding constraint: covering 1040px on a high-density screen needs about 2080px
+ * of source, so the guidance is a 2000px square. The carousel would be satisfied by far less, but it
+ * receives the same file. At this size a JPEG or WebP sits well inside the 5 MB cap; a PNG of the
+ * same dimensions may not.
+ */
+export const RECOMMENDED_IMAGE_SIZE = { width: 2000, height: 2000 } as const;
+
+/** Shown beside the upload field, so an author knows what to prepare. */
+export const RECOMMENDED_IMAGE_NOTE = `Square, ${RECOMMENDED_IMAGE_SIZE.width} × ${RECOMMENDED_IMAGE_SIZE.height} px or larger`;
 
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 

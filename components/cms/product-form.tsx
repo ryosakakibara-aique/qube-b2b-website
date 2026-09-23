@@ -10,14 +10,16 @@ import {
   MAX_SECTION_COUNT,
   MAX_TITLE_LENGTH,
   MIN_SECTION_COUNT,
+  SECTION_IMAGE_SLOTS,
   sectionBodyLimit,
-  sectionImageSlots,
 } from "@/lib/products/validation";
 import type { Product, ProductImage } from "@/lib/products/types";
 import {
   ALLOWED_IMAGE_TYPES,
   MAX_IMAGE_BYTES,
   MAX_IMAGE_SIZE_LABEL,
+  RECOMMENDED_IMAGE_NOTE,
+  RECOMMENDED_IMAGE_SIZE,
 } from "@/lib/media/storage";
 
 /** Derived from the server's own list, so the file picker cannot drift from what will be accepted. */
@@ -27,6 +29,34 @@ const ACCEPTED_IMAGE_TYPES = ALLOWED_IMAGE_TYPES.join(",");
 function formatFileSize(bytes: number): string {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+/**
+ * The pixel size of a file the author just chose, read locally so they can judge it before saving.
+ *
+ * Only ever called for a freshly picked file. An already-uploaded image is displayed through
+ * `next/image`, which serves a resized copy, so its `naturalWidth` would report the thumbnail rather
+ * than the original.
+ *
+ * Resolves to null instead of throwing: a file the browser cannot decode is already refused by the
+ * server's signature check, and a missing readout must not break the upload.
+ */
+function readImageSize(file: File): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const objectUrl = URL.createObjectURL(file);
+    const image = new window.Image();
+
+    image.onload = () => {
+      resolve({ width: image.naturalWidth, height: image.naturalHeight });
+      URL.revokeObjectURL(objectUrl);
+    };
+    image.onerror = () => {
+      resolve(null);
+      URL.revokeObjectURL(objectUrl);
+    };
+
+    image.src = objectUrl;
+  });
 }
 
 type DraftSection = {
@@ -133,6 +163,7 @@ function ImageField({
   const [url, setUrl] = useState(initialUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [size, setSize] = useState<{ width: number; height: number } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const errorId = `${altName}-error`;
   const fileId = `${urlName}-file`;
@@ -157,8 +188,14 @@ function ImageField({
     try {
       const body = new FormData();
       body.set("file", file);
-      const result = await uploadProductImage(body);
+      // Measured alongside the upload rather than before it: both are cheap and independent, and the
+      // author should not wait on a decode to see the upload start.
+      const [result, measured] = await Promise.all([
+        uploadProductImage(body),
+        readImageSize(file),
+      ]);
 
+      if (measured) setSize(measured);
       if (result.ok) setUrl(result.url);
       else setUploadError(result.error);
     } catch {
@@ -201,12 +238,24 @@ function ImageField({
 
           {!uploading && !uploadError ? (
             <p className="mt-1 text-[9px] text-[var(--text-muted)]">
-              PNG, JPEG or WebP, up to {MAX_IMAGE_SIZE_LABEL}.
+              PNG, JPEG or WebP, up to {MAX_IMAGE_SIZE_LABEL} —{" "}
+              {RECOMMENDED_IMAGE_NOTE}.
             </p>
           ) : null}
           {uploading ? (
             <p role="status" className="mt-1 text-[9px] text-[var(--text-muted)]">
               Uploading image...
+            </p>
+          ) : null}
+          {size && !uploading ? (
+            <p role="status" className="mt-1 text-[9px] text-[var(--text-muted)]">
+              {size.width} × {size.height} px
+              {size.width < RECOMMENDED_IMAGE_SIZE.width ||
+              size.height < RECOMMENDED_IMAGE_SIZE.height ? (
+                <span className="ml-1 text-red-700">
+                  — smaller than recommended
+                </span>
+              ) : null}
             </p>
           ) : null}
           {uploadError ? (
@@ -217,7 +266,10 @@ function ImageField({
           {url && !uploading ? (
             <button
               type="button"
-              onClick={() => setUrl("")}
+              onClick={() => {
+                setUrl("");
+                setSize(null);
+              }}
               className="mt-1 text-[9px] underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
             >
               Remove image
@@ -363,7 +415,7 @@ function ContentEditor({
   onRemove: () => void;
 }) {
   const bodyLimit = sectionBodyLimit(position);
-  const slots = sectionImageSlots(position);
+  const slots = SECTION_IMAGE_SLOTS;
   const headingName = `content${position}Heading`;
   const bodyName = `content${position}Body`;
   const bodyError = errors[bodyName];

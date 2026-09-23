@@ -249,9 +249,10 @@ The public site reads through a cookie-free Supabase client (`lib/supabase/publi
 routes stay static and cacheable; anything session-dependent uses the cookie-based client. Saves
 revalidate the affected public paths.
 
-Media uploads are restricted to PNG, JPEG and WebP, capped at 1 MB, and verified by file signature
-rather than the browser-declared MIME type. The cap sits below Next's 1 MiB Server Action body
-limit, which would otherwise reject the request before validation ran. SVG is refused deliberately.
+Media uploads are restricted to PNG, JPEG and WebP, capped at 5 MB, and verified by file signature
+rather than the browser-declared MIME type. `next.config.ts` raises the Server Action body limit to
+6 MB so that cap is actually reachable, and the CMS asks for a square image of around 2000 px. SVG is
+refused deliberately.
 
 ## Project documentation
 

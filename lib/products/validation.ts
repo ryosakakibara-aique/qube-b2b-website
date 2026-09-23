@@ -3,8 +3,10 @@ import type { ProductContentSection, ProductImage } from "@/lib/products/types";
 /**
  * The CMS product form contract: field names, content limits and image slots.
  *
- * The slot layout mirrors the Figma create/edit screens: the first content block accepts two
- * images, later blocks accept one.
+ * Every content block takes two images. The create/edit frames give only the first block two slots,
+ * and that is how this was first built; the client then asked for a second image on the other blocks
+ * as well, including blocks added in the CMS, so the per-position rule is gone. A deliberate
+ * deviation from the frames rather than a reading of them.
  *
  * The number of content blocks is data-driven rather than fixed at three. The Figma create screen
  * shows three blocks, but the designed product detail pages render more than three service blocks
@@ -22,9 +24,14 @@ export function sectionBodyLimit(position: number): number {
   return position === 1 ? LONG_CONTENT_LIMIT : SHORT_CONTENT_LIMIT;
 }
 
-export function sectionImageSlots(position: number): number {
-  return position === 1 ? 2 : 1;
-}
+/**
+ * Images per content block: two, whatever the block's position.
+ *
+ * The database and the write function needed no change for this — `product_content_section_images`
+ * is keyed by section and sort order and `save_product_content()` walks however many images it is
+ * given, so the one-per-block limit only ever existed in this rule and the form that read it.
+ */
+export const SECTION_IMAGE_SLOTS = 2;
 
 export const MAX_TITLE_LENGTH = 200;
 export const MAX_DESCRIPTION_LENGTH = 5000;
@@ -114,7 +121,7 @@ export function parseProductForm(formData: FormData): ProductValidation {
     }
 
     const images: ProductImage[] = [];
-    const slots = sectionImageSlots(position);
+    const slots = SECTION_IMAGE_SLOTS;
     for (let slot = 1; slot <= slots; slot += 1) {
       const url = text(formData, `content${position}Image${slot}Url`);
       const alt = text(formData, `content${position}Image${slot}Alt`);

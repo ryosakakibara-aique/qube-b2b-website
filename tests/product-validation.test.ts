@@ -162,7 +162,7 @@ test("bounds later content blocks at the short limit", () => {
   assert.ok(errors.content2Body);
 });
 
-test("gives the first content block two image slots and later blocks one", () => {
+test("gives every content block two image slots", () => {
   const payload = expectOk(
     parseProductForm(
       minimal({
@@ -175,6 +175,8 @@ test("gives the first content block two image slots and later blocks one", () =>
         content2Heading: "DROP",
         content2Image1Url: "https://example.test/3.png",
         content2Image1Alt: "Third",
+        content2Image2Url: "https://example.test/4.png",
+        content2Image2Alt: "Fourth",
       }),
     ),
   );
@@ -184,7 +186,27 @@ test("gives the first content block two image slots and later blocks one", () =>
     url: "https://example.test/1.png",
     alt: "First",
   });
-  assert.equal(payload.sections[1].images.length, 1);
+  assert.deepEqual(
+    payload.sections[1].images,
+    [
+      { url: "https://example.test/3.png", alt: "Third" },
+      { url: "https://example.test/4.png", alt: "Fourth" },
+    ],
+    "a block other than the first must accept a second image: the per-position limit is gone",
+  );
+});
+
+test("a later block's second image is validated like any other", () => {
+  const errors = expectErrors(
+    parseProductForm(
+      minimal({ sectionCount: "2", content2Image2Url: "https://example.test/4.png" }),
+    ),
+  );
+
+  assert.ok(
+    errors.content2Image2Alt,
+    "an image on the second slot of the second block still needs its description",
+  );
 });
 
 test("rejects alt text without an uploaded image", () => {

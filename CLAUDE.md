@@ -488,18 +488,23 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
    published products only. `BUSINESS_RULES.md`'s Draft → Review → Published workflow, audit log and
    soft delete are deferred — see the status note at the top of that file.
 2. **Media.** Product imagery is uploaded to the Supabase Storage bucket `product-images` (public
-   read, `admin`/`editor` write, PNG/JPEG/WebP, **1 MB cap**, verified by file signature). The cap was
-   originally 5 MB, which was unreachable: Next refuses a Server Action request body over 1 MiB
-   (`next.config.ts` does not raise `experimental.serverActions.bodySizeLimit`), so a larger image was
-   rejected *before* validation ran, and the upload field — which reset its "uploading" state only on
-   success — appeared to hang. SVG is refused deliberately.
+   read, `admin`/`editor` write, PNG/JPEG/WebP, **5 MB cap**, verified by file signature). That cap
+   only works because `next.config.ts` raises `experimental.serverActions.bodySizeLimit` to 6 MB:
+   Next refuses a Server Action request body larger than its 1 MiB default, so at the default the cap
+   was unreachable — an oversized image was rejected *before* validation ran, and the upload field,
+   which reset its "uploading" state on the success path only, appeared to hang. The extra megabyte
+   is headroom for the multipart boundaries and part headers. A test reads the config and fails if the
+   two ever disagree. Around 2000 px square is the recommended upload, because the product page shows
+   the same file as a banner up to 1040 px wide. SVG is refused deliberately.
 3. **Contact enquiries.** The three "Talk to an Expert" forms submit to `public.contact_submissions`
    (anonymous insert; **only `admin` may read**, since these rows hold customer PII). They are read
    at `/cms/inquiries`. No CRM integration exists; an optional notification webhook is described in
    [README.md](README.md).
 4. **Content sections are data-driven.** The create screen shows three content blocks, but designed
    product pages render more than three, so the CMS manages a variable number of sections. A fixed
-   count would delete authored content on save.
+   count would delete authored content on save. Every block takes **two** images, including blocks
+   added in the CMS; the frames give only the first block two slots, so that is a deliberate deviation
+   recorded in [docs/DEVELOPMENT-PHASES.md](docs/DEVELOPMENT-PHASES.md) §1.
 5. **`/cms` is a documented redirect** to `/cms/products`.
 6. **The primary CTA label is dark, not white.** Labels on the brand gradient use
    `--brand-foreground` (`#18181b`), which measures 6.62–7.69:1 across the gradient stops and passes
@@ -572,3 +577,25 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   control of its own. Per-card redirection, and whether that arrow becomes separately clickable, is the
   next task at the client's request. The cards keep their own dataset — stories, not the client list in
   `components/layout/client-logo-grid.tsx` — even though the same eight logo files appear in both.
+- **The hero video is a stand-in, not QUBE's.** `HERO_VIDEO_ID` in
+  `components/layout/hero-video-section.tsx` currently points at *"Google AI Plans - Gemini Omni
+  Version 2 9x16"* from Google's own channel — 30 seconds, framed vertically — so the embed can be seen
+  working. Both the id and the accessible frame title say so, and both have to be replaced before the
+  hero is presented as finished; restoring `PLACEHOLDER_ID` returns the poster state. Three things come
+  with any YouTube embed: its branding cannot be removed (`modestbranding` and `showinfo` are
+  deprecated), the pause control in `hero-video-embed.tsx` is a design addition the frames do not
+  define — required by WCAG 2.2.2 for an autoplaying loop — and a YouTube iframe letterboxes rather
+  than filling the hero box, which a vertical clip makes obvious.
+- **The hero video plays only while it is fully in frame, and its control is hidden.** Nothing plays on
+  load: the player is not created until the visitor has scrolled ~120 px *and* the box is on screen,
+  and it is created **paused** (`autoplay=0`). Playback follows full visibility — play when the whole
+  box is in frame, pause on any scroll away from that, including out of view — with a deliberate press
+  of play winning while the box is on screen at all. The poster is therefore not what you see while
+  scrolling; it survives only for no-JavaScript and reduced-motion visitors. The box itself is hidden
+  on load too (`ScrollReveal`: `opacity: 0`, 20px down) and reveals on that first scroll, so the area
+  is unpainted — though not collapsed, so nothing shifts — until then. On a window shorter than the box
+  (under ~700 px tall, or a landscape phone) the whole box can never be in frame, so playback will not
+  start on its own. The pause control is hidden at rest and appears on hover or keyboard focus, at the
+  client's request for a clean hero: WCAG 2.2.2 (Level A) still requires a mechanism to stop an
+  autoplaying loop and one still exists, but it is no longer visible to a pointer user who wants to
+  stop the video without reaching for the keyboard.

@@ -95,7 +95,7 @@ re-export before typography and the mobile frames can be verified.
 | **D2** | **Still open — needs a Figma re-export.** Nothing in the repository can resolve typography against the design. [TYPOGRAPHY.md](../TYPOGRAPHY.md) now documents the scale actually implemented, which is derived from code and explicitly not a Figma verification; no type tokens were invented. |
 | **D3** | **Still open.** `docs/design/screenshots/` is absent. The extracted palette/geometry JSON was sufficient for colour and shape work; typography and copy are not recoverable this way. |
 | **D4** | **Resolved by engineering judgement — do not install shadcn/ui yet.** CLAUDE.md mandates a small dependency footprint, and V1 needs no dialog, popover, sheet or tab. The one table is native `<table>`; the switch is a native button with `role="switch"`. Revisit when a real primitive is required. |
-| **D5** | **Resolved by client decision — build the upload.** Bucket `product-images`, public read, `admin`/`editor` write, PNG/JPEG/WebP, signature-verified. The cap was set at 5 MB and later corrected to **1 MB** (Round 16): Next's Server Action body limit is 1 MiB, so anything larger was refused before validation and the form appeared to hang. SVG refused on purpose. |
+| **D5** | **Resolved by client decision — build the upload.** Bucket `product-images`, public read, `admin`/`editor` write, PNG/JPEG/WebP, signature-verified, **5 MB cap** with `experimental.serverActions.bodySizeLimit` raised to 6 MB in `next.config.ts` so the cap is reachable (Round 16–17: at Next's 1 MiB default a larger image was refused before validation and the form hung). A square of around 2000 px is the recommended upload. SVG refused on purpose. |
 | **D6** | **Resolved.** The site is hosted on Render at `business.qubesmartlockers.com`. That origin is the documented value for `NEXT_PUBLIC_SITE_URL` and is pre-filled in `render.yaml`; a production build missing the variable now falls back to the production origin rather than localhost, with a warning. The CMS form's hardcoded `business.qubesmartlockers.com/` path prefix is therefore confirmed correct rather than assumed. |
 | **D7** | **Resolved.** The client created the Supabase project, applied both migrations, added an approved user and published a product, so the application now runs against real data. The authenticated write path is exercised through the CMS UI rather than the API here, because no service-role credential exists in this workspace by design. |
 | **D8** | **Resolved by client decision — capture enquiries.** `public.contact_submissions` with anonymous insert and admin-only read, submitted through a validated server action with a honeypot. No CRM or e-mail integration. Live-verified: an anonymous insert returns 201, and an anonymous read returns zero rows. |
@@ -117,6 +117,12 @@ re-export before typography and the mobile frames can be verified.
    Figma UI" is preserved in the sense that nothing moves, changes colour, changes type or changes
    layout at rest — but a scroll animation is still an addition to a design that had none, so it is
    recorded here rather than presented as fidelity. The whole system is reversible from one value.
+5. **Every content block takes two images, not one.** The create/edit frames give two slots to the
+   first block and one to each of the others; that is how it was built. The client asked for a second
+   image on the other blocks too, including blocks added in the CMS, so the per-position rule was
+   removed (`SECTION_IMAGE_SLOTS`). No schema or write-path change was needed: the images table is
+   keyed by section and sort order and `save_product_content()` walks however many it is given. The
+   detail page already lays two images out side by side.
 
 ---
 
@@ -1192,6 +1198,8 @@ duration like the rest of the system.
 Fixed by the client's decision to make the interface promise match what the server will accept: the cap
 is now **1 MB decimal** (`MAX_IMAGE_BYTES = 1000 * 1000`), deliberately below the 1 MiB request limit
 so the multipart boundaries and part headers that travel with the file cannot push a request over it.
+*(Superseded by Round 17, which restored the 5 MB cap by raising the request limit instead — the client
+wanted the larger allowance.)*
 `MAX_IMAGE_SIZE_LABEL` is exported so the action's message, the field's hint and the refusal copy all
 read from one place; the file picker's `accept` list is derived from the server's allowed types rather
 than a second hard-coded string; an oversized file is refused client-side before a byte is uploaded;
@@ -1205,6 +1213,124 @@ the success-path-only reset — and watching the intended failures appear, then 
 
 Four places still stated the old cap and were corrected: CLAUDE.md decision 2, DATABASE.md's storage
 section, README.md's media paragraph, and D5 above.
+
+**Round 17 — the client's second content pass.** Four changes from one message.
+
+- **Upload allowance: 1 MB back to 5 MB, and the request limit raised to match.** Round 16 lowered the
+  cap because Next's Server Action body limit defaults to 1 MiB; the client then asked for something
+  between 1 and 5 MB, so the limit moves instead: `experimental.serverActions.bodySizeLimit: "6mb"` in
+  `next.config.ts`, cap back at 5 MB, the extra megabyte as headroom for the multipart boundaries and
+  part headers. `SERVER_ACTION_BODY_LIMIT_BYTES` now records the value we configure rather than Next's
+  default, and the test reads `next.config.ts` and fails if the two disagree — the check that would
+  have caught the original hang from the other direction.
+- **The CMS states the resolution.** Every image field shows the recommended upload, derived from the
+  display containers rather than invented: the carousel shows a 210px square and the product page a
+  banner up to 1040px wide, centre-cropped, so the guidance is a 2000px square. The field also reports
+  the dimensions of the file just chosen, read locally, and flags anything smaller than the
+  recommendation. It deliberately does not read dimensions back off an already-uploaded image: that is
+  rendered through `next/image`, which serves a resized copy, so `naturalWidth` would report the
+  thumbnail rather than the original.
+- **Every content block takes two images.** The per-position rule (`sectionImageSlots`) is gone,
+  replaced by `SECTION_IMAGE_SLOTS = 2`. No schema or write-path change was needed — the images table
+  is keyed by section and sort order, and `save_product_content()` walks however many images it is
+  given — and the detail page already lays two out side by side. Recorded as a deliberate deviation
+  from the frames, since the design gives only the first block two slots.
+- **The hero video is wired to YouTube, behind a placeholder id.** `HeroVideoEmbed` creates the iframe
+  on the client (YouTube wants the embedding origin and `window` does not exist while server
+  rendering, so the origin is read through `useSyncExternalStore` rather than state set inside an
+  effect), pairs `loop` with `playlist` because `loop=1` alone does not loop a single video, and
+  autoplays muted and inline. Three consequences are recorded rather than discovered later: YouTube's
+  own branding cannot be removed (`modestbranding` and `showinfo` are deprecated); the pause control is
+  a design addition, required because an autoplaying loop running alongside other content needs a
+  mechanism to stop it (WCAG 2.2.2, Level A); and a YouTube iframe letterboxes rather than filling the
+  hero box on narrow screens. Visitors who asked for reduced motion get no autoplay at all — the play
+  button is theirs. While the id is the placeholder, `HeroVideoSection` renders the poster state, so
+  the hero is unchanged and nothing half-configured ships.
+
+**Round 17, follow-up — the video id is a stand-in.** The client supplied a video, and a pre-flight
+check of it (YouTube's oEmbed endpoint plus its watch page) returned *"Google AI Plans - Gemini Omni
+Version 2 9x16"*, from **Google's own channel**, 30 seconds long. It is wired in so the embed can be
+seen working, and recorded here as a stand-in rather than a decision: the content, the branding and the
+framing belong to someone else, the accessible frame title names that video rather than pretending
+otherwise, and restoring `PLACEHOLDER_ID` returns the poster state. A vertically framed clip in a
+landscape hero box letterboxes heavily — a property of the stand-in, not of the finished hero. The
+check itself is worth repeating for the real video: one request answers "does this id exist, is it
+embeddable, and what is it actually?" before anything ships.
+
+Two rendering details were verified rather than assumed. The server-rendered hero holds a pre-player
+caption, not a frame, because the player is created on the client; the id reaches the browser inside
+the RSC payload as a component prop, which is expected and not an iframe. And the caption is a plain
+status rather than a button for everyone except reduced-motion visitors, so normal visitors are not
+shown a control that dismisses itself when the player arrives — or, with JavaScript off, one that
+would never work.
+
+**Round 17, third follow-up — playback is scroll-driven, and the player chrome is off.** The client
+asked for the video to be absent on load, to appear and play at a scroll position, and to pause once
+it leaves the viewport.
+
+- **Nothing on load.** The player is not created until the visitor has scrolled past ~120 px *and* the
+  box is on screen. Verified in the built output: the server-rendered hero contains no player at all,
+  only the poster caption. *(The thresholds described in this follow-up were replaced by the fourth
+  follow-up below: the player is now created paused, and playback follows full visibility.)*
+- **Two thresholds, not one.** A single visibility threshold would start and stop the video repeatedly
+  as a visitor scrolled back and forth across it; the gap between playing at a half and pausing below a
+  quarter is hysteresis.
+- **The scroll threshold is load-bearing, not decoration.** The hero box sits inside the first screen
+  on desktop and on mobile, so "play when visible" fires on load and is simply autoplay again. Nothing
+  starts until the visitor has actually scrolled, which is what makes "hidden on load" true.
+- **The early-mount step was dropped from the plan.** Mounting the player before it should play is
+  possible, but a paused YouTube frame looks nothing like the poster it replaces, and a `playVideo`
+  command sent before the player is listening is dropped. Creating it at the play moment needs neither
+  trick: `autoplay=1` starts it, and by the time pause and resume need scripted control the player is
+  loaded and listening.
+- **Playback is derived, not stored** (`mounted && quarterVisible && !userPaused`). That keeps the
+  hysteresis honest and the control's icon truthful — one source of truth for both — and it was forced
+  by the lint rule against setting state inside an effect: the effect now only forwards the derived
+  state to the player, which also means a pause the visitor chose can never be overridden by scrolling
+  back.
+- **The controls are hidden**, as asked. YouTube's own bar was already off (`controls=0`), and the
+  pause control is now invisible until hover or keyboard focus. That is a scored trade, not a free
+  one: WCAG 2.2.2 (Level A) still requires a mechanism to stop an autoplaying loop and one still
+  exists, but it is no longer visible to a pointer user who wants to stop the video without reaching
+  for the keyboard. Recorded in CLAUDE.md's known gaps.
+- **The box itself is hidden on load too.** `ScrollReveal` renders it at `opacity: 0` with a 20px
+  downward offset, and both animate away on the visitor's first scroll. A plain viewport reveal cannot
+  do that: for an element already inside the first screen it fires at hydration, so "hidden until you
+  scroll" would really mean "hidden until hydration" — a mount animation with extra steps. The new
+  primitive pairs the viewport trigger with the scroll latch, and `once: true` on the in-view half
+  makes the reveal one-way, so the box does not vanish again when the visitor scrolls back past it.
+  Verified in the built markup: the box ships as `style="opacity:0;transform:translateY(20px)"` with
+  `data-reveal`, which also means the root layout's no-JavaScript rule restores it instead of leaving
+  a permanent hole.
+- **One threshold, shared.** `components/motion/use-has-scrolled.ts` now owns both the latch and the
+  120px figure, used by the reveal and by playback, so the box cannot appear and start playing at
+  different moments. The consequence to be aware of: because the box sits inside the first screen, that
+  area is unpainted on load until the visitor scrolls. There is no layout shift — the box still
+  occupies its height — but it is blank in the meantime.
+
+**Round 17, fourth follow-up — the paused video replaces the poster, and playback follows full
+visibility.** Two corrections from the client after seeing the behaviour.
+
+- **The poster is no longer what appears while scrolling.** It now belongs only to the states that
+  genuinely have no player: a no-JavaScript visitor, who never gets one, and a reduced-motion visitor
+  who has not pressed play. Once scrolling begins the poster is dropped, so what appears in the box is
+  the video itself, paused, while the visitor scrolls it into view.
+- **The player is created paused** (`autoplay=0`) at the same moment the box reveals — about a fifth of
+  it on screen — and `playVideo` is sent only once the whole box is in frame. This is the early-mount
+  step that was dropped from the plan earlier in this round, and it becomes right once the poster is
+  gone: the paused frame is now the intended state rather than a flash to be avoided.
+- **Playback follows full visibility**, replacing the 50 %/25 % hysteresis pair: play when the element
+  is entirely on screen, pause on any scroll away from that, including out of view. A deliberate press
+  of play still wins while the box is on screen at all, so the control cannot look broken when the box
+  is not completely in frame.
+- **A consequence worth stating.** On a window shorter than the box itself — under roughly 700 px tall
+  on desktop, or a landscape phone — the whole box can never be in frame, so playback will not start
+  on its own there. The control is still there, revealed on hover or keyboard focus, and the video
+  pauses again as soon as it leaves that state.
+
+**Verified**: 164 tests (6 new or rewritten), `npx tsc --noEmit`, `npm run lint` and `npm run build`
+all exit 0, with `/` and `/products` still static and nine product pages prerendered. The hero's
+rendered markup is byte-identical to before and contains no iframe while the id is a placeholder.
 
 ---
 
