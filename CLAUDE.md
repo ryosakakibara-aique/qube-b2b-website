@@ -570,6 +570,13 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   `opacity: 0` is not a valid LCP candidate, so the metric lands when the 260 ms fade ends rather than
   at first paint. The client asked for the fade knowing that; if it is ever walked back, the heading
   returns to transform-only first (Round 14 follow-up).
+- **The PANDORA showcase images are paired by shape, not by content.** `pandora-1` … `pandora-9` carry no
+  metadata naming their feature and could not be viewed in this workspace, so each tile's image was
+  matched by aspect ratio to the tile's span, with the remaining six in filename order. If a photograph
+  sits on the wrong feature it is one path per tile in
+  `components/layout/pandora-showcase-grid.tsx`. Their alt text is empty by design — the label beside
+  each image already names the feature — so send per-image descriptions if they should be described
+  instead.
 - **Footer link labels** are not recoverable from the reference pack. The footer renders navigation
   targets that are known to exist rather than placeholder link text.
 - **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so every

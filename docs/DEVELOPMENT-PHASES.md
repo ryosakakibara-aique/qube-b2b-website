@@ -1332,6 +1332,31 @@ visibility.** Two corrections from the client after seeing the behaviour.
 all exit 0, with `/` and `/products` still static and nine product pages prerendered. The hero's
 rendered markup is byte-identical to before and contains no iframe while the id is a placeholder.
 
+**Round 18 — the PANDORA showcase tiles carry images.** The client exported nine images into
+`public/pandora-features-images` and asked the grid to use them. Each tile now renders one behind its
+label, with the existing dark wash kept on top so the label stays legible, and a base surface
+underneath that is what remains if an image cannot load.
+
+- **The pairing is by shape, because nothing else can decide it.** The files are `pandora-1` …
+  `pandora-9`, and their only metadata is `Software: Figma`; no document in the repository says which
+  photograph belongs to which feature. What is knowable is the geometry, and it matches the grid
+  exactly — two assets are twice as wide as they are tall, one is taller than wide, six are
+  single-tile shaped, against two `lg:col-span-2` tiles, one `lg:row-span-2` tile and six singles. The
+  remaining six fill the single tiles in filename order. A wrong pairing is one string per tile.
+- **Measured rather than taken on trust.** The set was described as six squares, two doubles and one
+  portrait. Measured from the PNG headers: the two wide assets are 2.15:1 and the portrait is 1:1.67,
+  both as described — but the six "squares" are really 1.10–1.62:1. Against a single tile of about
+  1.28:1, `object-cover` trims up to 21% from the widest of them (`pandora-7`) and under 7% from most.
+  Recorded because that is the one asset most likely to lose content at its edges.
+- **Decorative, deliberately.** The images are `alt=""` rather than described: the label beside each one
+  already names the feature, and writing alt text for pictures nobody in this workspace can view would
+  mean inventing it.
+- **Pinned by a test.** Three checks keep the join honest — every image in the directory is used exactly
+  once and nothing else is referenced, each tile's image shape matches its tile's span with the
+  dimensions read from the PNG headers rather than hardcoded, and the images stay marked decorative with
+  `object-cover`. The shape check is the one that matters: a swap would otherwise look perfectly correct
+  in review while showing a portrait photograph in a landscape tile.
+
 ---
 
 ## Appendix A — Verification command cookbook
