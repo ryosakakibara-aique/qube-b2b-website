@@ -618,3 +618,17 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
   client's request for a clean hero: WCAG 2.2.2 (Level A) still requires a mechanism to stop an
   autoplaying loop and one still exists, but it is no longer visible to a pointer user who wants to
   stop the video without reaching for the keyboard.
+- **The favicon pair is legible in one colour scheme and weak in the other.** The client supplied a
+  light and a dark PNG and they are wired as they are: declared in the root layout's `icons` field with
+  `media="(prefers-color-scheme: …)"`, because the `app/favicon.ico` convention cannot carry a media
+  query — and Next unshifts that convention ahead of declared icons, so `app/favicon.ico` (which was
+  still create-next-app's Next.js logo) was deleted and `/favicon.ico` is now served from `public/`,
+  built from the client's light PNG bytes, for clients that request that path directly. Both files are
+  48×48, transparent-backed and differ only in the plate behind the mark (`#e2e8f0` light, `#ffffff`
+  dark), so the dark file is strong on dark chrome (16.10:1) while the light file leaves the teal mark
+  at 2.50:1 on a light tab strip, under the 3:1 floor for a graphical object; a `#0f766e` mark would
+  measure 5.47:1. The mark is also flush to the top and bottom of its canvas, which reads as clipped at
+  tab size. Neither was changed — the client is reviewing the artwork. Two things remain unverified
+  here: whether Chrome honours `media` on icons at all, and how the mark reads at 16 px in a real tab
+  strip. There is no `apple-icon` either; an iOS home-screen icon wants 180×180, and the source artwork
+  is 48×48.

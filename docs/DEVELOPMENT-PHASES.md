@@ -1422,6 +1422,46 @@ deliberate choice rather than a workaround for the cap, that the tiles animate t
 rather than a wrapper, and that the longest list in the application still gives every item its own
 beat.
 
+**Round 21 — the site gets its own favicon, in two colour schemes.** The client supplied
+`public/qube-light-favicon.png` and `public/qube-dark-favicon.png` to be wired "as they are". Neither
+was referenced by anything, so until this round the site served `app/favicon.ico` — create-next-app's
+Next.js logo, untouched since the initial commit.
+
+- **Why the file convention could not be used.** `app/favicon.ico` emits one icon with no media query,
+  and the pair only means anything with `media="(prefers-color-scheme: …)"`. The icons are declared in
+  the root layout's `icons` field instead. `app/favicon.ico` was deleted rather than left in place:
+  Next *unshifts* the file-convention favicon ahead of declared icons, so keeping it would have served
+  the Next.js logo first in both schemes.
+- **`/favicon.ico` still answers.** Clients that request that path without reading the markup — and
+  WebKit, which does not honour `media` on icons ([bug 309949](https://wiki.webkit.org/show_bug.cgi?id=309949)) —
+  would otherwise get a 404. `public/favicon.ico` is built from the client's own light PNG bytes
+  (a PNG-compressed ICO container, no new drawing), so there is no third artwork to keep in step.
+- **No icon carries a `media`-less duplicate.** An entry without a media query matches every scheme, so
+  adding one would make the winner depend on which icon the engine prefers rather than on the
+  visitor's theme. That is pinned by a test.
+- **What the artwork is, measured rather than assumed.** Both files were decoded pixel by pixel, since
+  no image-capable model is attached to this workspace. Each is 48×48, RGBA, transparent-backed,
+  non-interlaced, sRGB, `Software = Figma`, 72 dpi. Their alpha channels and their teal mark are
+  byte-identical; the *only* difference is the plate behind the Q — `#e2e8f0` (the site's
+  `--surface-muted`) in the light file, `#ffffff` in the dark one. The dark file is strong on dark
+  chrome (white plate 16.10:1 against `#202124`). The light file is weaker than it looks: its plate is
+  1.23:1 against white and 1.06:1 against a light tab strip, leaving the teal Q at **2.50:1**, under
+  the 3:1 WCAG 1.4.11 floor for a graphical object. That is recorded rather than corrected — the client
+  approved this artwork and will review it on their own devices — and the alternative is written down
+  for the review: a `#0f766e` mark measures 5.47:1 on white. The mark is also flush to the top and
+  bottom of its canvas (inked box 40×48 at `(4,0)`), which reads as clipped at tab size.
+- **Six assertions pin the wiring**, because two of its failure modes are silent: a transposition
+  (light file answering `prefers-color-scheme: dark` — the two greys are close enough to pass review)
+  and a `media`-less duplicate quietly winning. They also check that both files are square, at least
+  48 px and carry an alpha channel, that they are not the same bytes, that nothing in `public/` is
+  orphaned, and that `public/favicon.ico` embeds the light artwork verbatim.
+
+**Verified**: 186 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0. The built
+HTML for `/` contains exactly two icon links — the light PNG scoped to `prefers-color-scheme: light`
+and the dark PNG to `prefers-color-scheme: dark` — and no reference to `/favicon.ico`, which is served
+from `public/` for direct requests. Not verified: that Chrome honours `media` on icons at all (no
+browser exists in this workspace) and how the mark reads at 16 px in a real tab strip.
+
 ---
 
 ## Appendix A — Verification command cookbook
