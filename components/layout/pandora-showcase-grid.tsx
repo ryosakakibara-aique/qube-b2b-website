@@ -1,5 +1,5 @@
 import Image from "next/image";
-import Link from "next/link";
+import { RevealLink } from "@/components/motion/reveal-link";
 
 /**
  * The nine-tile PANDORA showcase.
@@ -101,17 +101,24 @@ const cells: ShowcaseCellData[] = [
   },
 ];
 
-// ShowcaseCell's prop type only needs the rendering fields
+// ShowcaseCell's prop type only needs the rendering fields, plus its place in the stagger.
 function ShowcaseCell({
   label,
   image,
   variant,
   gridClassName,
-}: Omit<ShowcaseCellData, "id">) {
+  index,
+}: Omit<ShowcaseCellData, "id"> & { index: number }) {
   const isDark = variant === "dark";
   return (
-    <Link
+    <RevealLink
       href="#"
+      index={index}
+      /*
+        Fade only, for the same reason as the feature grid: these tiles share their 1px rules with
+        their neighbours, so moving one would pull the panel's edges apart mid-animation.
+      */
+      variant="fade"
       className={`group relative flex min-h-[220px] items-end overflow-hidden border ${
         isDark ? "border-[#27272a]" : "border-[#e5e7eb]"
       } lg:h-full lg:min-h-0 ${gridClassName}`}
@@ -151,15 +158,15 @@ function ShowcaseCell({
         {label}
         {/* <ArrowIcon /> */}
       </span>
-    </Link>
+    </RevealLink>
   );
 }
 
 export function PandoraShowcaseGrid() {
   return (
     <div className="grid grid-cols-1 overflow-hidden rounded-[30px] border border-[#e5e7eb] lg:h-[1082px] lg:grid-cols-3 lg:grid-rows-4">
-      {cells.map(({ id, ...cellProps }) => (
-        <ShowcaseCell key={id} {...cellProps} />
+      {cells.map(({ id, ...cellProps }, index) => (
+        <ShowcaseCell key={id} index={index} {...cellProps} />
       ))}
     </div>
   );

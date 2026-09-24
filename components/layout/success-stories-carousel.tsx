@@ -99,13 +99,14 @@ function StoryCardItem({ card }: { card: StoryCard }) {
           className={"brightness-0 invert"}
         />
       </div>
-      <div className="flex h-[80px] w-full items-center justify-center py-4">
+      {/* User hid this for the meantime. */}
+      {/* <div className="flex h-[80px] w-full items-center justify-center py-4">
         <span
           className={`flex items-center gap-2 text-lg font-semibold transition-opacity group-hover:opacity-70 text-white`}
         >
           Read Story <span aria-hidden="true">→</span>
         </span>
-      </div>
+      </div> */}
     </Link>
   );
 }

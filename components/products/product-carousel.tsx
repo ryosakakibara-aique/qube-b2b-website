@@ -164,145 +164,164 @@ export function ProductCarousel({ products }: { products: Product[] }) {
   const trackTranslate = containerWidth / 2 - activeCenterInTrack;
 
   return (
-    <div
-      ref={containerRef}
-      className="relative w-full overflow-hidden"
-      style={{ height: SIZES.active.h + 64 }} // 64 = py-8 top + bottom
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
-    >
-      {/* Sliding track */}
-      <div
-        className="absolute top-8 flex items-center"
-        style={{
-          left: 0,
-          gap: CARD_GAP,
-          transform: `translateX(${trackTranslate}px)`,
-          // Slide smoothly during the swipe phase; snap instantly during the pause/reset phase.
-          transition: swiping
-            ? `transform ${SWIPE_MS}ms ${SWIPE_EASE}`
-            : "none",
-          willChange: "transform",
-        }}
-      >
-        {extended.map(({ product, key, extIndex }) => {
-          const dist = Math.abs(extIndex - activeExtIndex);
-          const tier = distanceTier(dist);
-          const size = SIZES[tier];
-          // Only one copy should be reachable by keyboard/AT — the filler copies exist purely to
-          // make the loop seamless. With a single copy, every card is authoritative.
-          const isAuthoritative =
-            copies === 1 || (extIndex >= n && extIndex < 2 * n);
+    /*
+      The strip is capped at the site's 1040px content column and centred, so it lines up with the
+      hero above and the sections below at desktop widths. Below 1040 nothing binds and the carousel
+      stays full-bleed, which is what it wants on a phone.
 
-          return (
-            <Link
-              key={key}
-              href={`/products/${product.slug}`}
-              aria-hidden={isAuthoritative ? undefined : true}
-              tabIndex={isAuthoritative ? undefined : -1}
-              className="shrink-0 flex flex-col rounded-[32px] border border-[#e2e8f0] bg-[#f1f5f9] overflow-hidden"
-              style={{
-                width: size.w,
-                height: size.h,
-                padding: size.p,
-                gap: size.innerGap,
-                // Card resize animates in lockstep with the track slide — same duration, same
-                // easing, so nothing lags or overshoots relative to anything else.
-                transition: swiping
-                  ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}, padding ${SWIPE_MS}ms ${SWIPE_EASE}`
-                  : "none",
-              }}
-            >
-              {/* Image */}
-              <div
-                className="relative shrink-0 rounded-[20px] bg-[#e2e8f0] overflow-hidden"
+      The cap sits on the wrapper rather than on the measured element so that the nested body below
+      keeps its indentation; the inner element is `w-full`, so it fills the capped box exactly and the
+      ResizeObserver measures the same 1040 the cap produces. The flex centring this wrapper used to
+      carry was doing nothing — the inner element is `w-full`, so `mx-auto` here is what centres it —
+      and its `overflow-hidden` would have clipped any card that ever grows on hover.
+    */
+    <div className="mx-auto w-full max-w-[1040px]">
+      <div
+        ref={containerRef}
+        className="relative w-full overflow-hidden"
+        style={{ height: SIZES.active.h + 64 }} // 64 = py-8 top + bottom
+        onMouseEnter={() => setPaused(true)}
+        onMouseLeave={() => setPaused(false)}
+        onFocusCapture={() => setPaused(true)}
+        onBlurCapture={() => setPaused(false)}
+      >
+        {/* Sliding track */}
+        <div
+          className="absolute top-8 flex items-center"
+          style={{
+            left: 0,
+            gap: CARD_GAP,
+            transform: `translateX(${trackTranslate}px)`,
+            // Slide smoothly during the swipe phase; snap instantly during the pause/reset phase.
+            transition: swiping
+              ? `transform ${SWIPE_MS}ms ${SWIPE_EASE}`
+              : "none",
+            willChange: "transform",
+          }}
+        >
+          {extended.map(({ product, key, extIndex }) => {
+            const dist = Math.abs(extIndex - activeExtIndex);
+            const tier = distanceTier(dist);
+            const size = SIZES[tier];
+            // Only one copy should be reachable by keyboard/AT — the filler copies exist purely to
+            // make the loop seamless. With a single copy, every card is authoritative.
+            const isAuthoritative =
+              copies === 1 || (extIndex >= n && extIndex < 2 * n);
+
+            return (
+              <Link
+                key={key}
+                href={`/products/${product.slug}`}
+                aria-hidden={isAuthoritative ? undefined : true}
+                tabIndex={isAuthoritative ? undefined : -1}
+                className="shrink-0 flex flex-col rounded-[32px] border border-[#e2e8f0] bg-[#f1f5f9] overflow-hidden"
                 style={{
-                  width: size.img,
-                  height: size.img,
+                  width: size.w,
+                  height: size.h,
+                  padding: size.p,
+                  gap: size.innerGap,
+                  // Card resize animates in lockstep with the track slide — same duration, same
+                  // easing, so nothing lags or overshoots relative to anything else.
                   transition: swiping
-                    ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}`
+                    ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}, padding ${SWIPE_MS}ms ${SWIPE_EASE}`
                     : "none",
                 }}
               >
-                <span className="sr-only">
-                  {product.cardImageAlt ?? product.title}
-                </span>
-                {product.cardImageUrl ? (
-                  <Image
-                    src={product.cardImageUrl}
-                    alt=""
-                    fill
-                    className="object-contain"
-                  />
-                ) : null}
-              </div>
-
-              {/* Text content */}
-              <div
-                className="flex flex-col min-h-0 flex-1 overflow-hidden"
-                style={{ gap: size.innerGap }}
-              >
+                {/* Image */}
                 <div
-                  style={{ paddingLeft: size.p / 3, paddingRight: size.p / 3 }}
+                  className="relative shrink-0 rounded-[20px] bg-[#e2e8f0] overflow-hidden"
+                  style={{
+                    width: size.img,
+                    height: size.img,
+                    transition: swiping
+                      ? `width ${SWIPE_MS}ms ${SWIPE_EASE}, height ${SWIPE_MS}ms ${SWIPE_EASE}`
+                      : "none",
+                  }}
                 >
-                  <p
-                    className="font-bold text-[#3f3f46] leading-snug"
-                    style={{ fontSize: size.fs }}
-                  >
-                    {product.title}
-                  </p>
-                  <p
-                    className="mt-1 line-clamp-3 text-[#3f3f46] leading-snug"
-                    style={{ fontSize: size.fsSmall }}
-                  >
-                    {product.description}
-                  </p>
+                  <span className="sr-only">
+                    {product.cardImageAlt ?? product.title}
+                  </span>
+                  {product.cardImageUrl ? (
+                    <Image
+                      src={product.cardImageUrl}
+                      alt=""
+                      fill
+                      className="object-contain"
+                    />
+                  ) : null}
                 </div>
 
-                {/* Tags */}
+                {/* Text content */}
                 <div
-                  className="flex flex-wrap"
-                  style={{ gap: size.innerGap, paddingTop: size.innerGap / 2 }}
+                  className="flex flex-col min-h-0 flex-1 overflow-hidden"
+                  style={{ gap: size.innerGap }}
                 >
-                  {product.tags.slice(0, 3).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-lg border border-[#00c290]/40 bg-gradient-to-b from-[rgba(0,194,144,0.3)] via-[rgba(15,184,170,0.3)] to-[rgba(31,173,197,0.3)]"
-                      style={{
-                        paddingLeft: size.tagPx,
-                        paddingRight: size.tagPx,
-                        paddingTop: 1,
-                        paddingBottom: 1,
-                      }}
+                  <div
+                    style={{
+                      paddingLeft: size.p / 3,
+                      paddingRight: size.p / 3,
+                    }}
+                  >
+                    <p
+                      className="font-bold text-[#3f3f46] leading-snug"
+                      style={{ fontSize: size.fs }}
                     >
-                      <span
-                        className="bg-gradient-to-b from-[#00c290] via-[#0fb8aa] to-[#1fadc5] bg-clip-text font-medium text-transparent whitespace-nowrap"
-                        style={{ fontSize: size.fsTag }}
-                      >
-                        {tag}
-                      </span>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
+                      {product.title}
+                    </p>
+                    <p
+                      className="mt-1 line-clamp-3 text-[#3f3f46] leading-snug"
+                      style={{ fontSize: size.fsSmall }}
+                    >
+                      {product.description}
+                    </p>
+                  </div>
 
-      {/* Edge gradient fades — matches Figma's horizontal-gradient-light token
+                  {/* Tags */}
+                  <div
+                    className="flex flex-wrap"
+                    style={{
+                      gap: size.innerGap,
+                      paddingTop: size.innerGap / 2,
+                    }}
+                  >
+                    {product.tags.slice(0, 3).map((tag) => (
+                      <span
+                        key={tag}
+                        className="rounded-lg border border-[#00c290]/40 bg-gradient-to-b from-[rgba(0,194,144,0.3)] via-[rgba(15,184,170,0.3)] to-[rgba(31,173,197,0.3)]"
+                        style={{
+                          paddingLeft: size.tagPx,
+                          paddingRight: size.tagPx,
+                          paddingTop: 1,
+                          paddingBottom: 1,
+                        }}
+                      >
+                        <span
+                          className="bg-gradient-to-b from-[#00c290] via-[#0fb8aa] to-[#1fadc5] bg-clip-text font-medium text-transparent whitespace-nowrap"
+                          style={{ fontSize: size.fsTag }}
+                        >
+                          {tag}
+                        </span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+
+        {/* Edge gradient fades — matches Figma's horizontal-gradient-light token
           (stops at 69.624% / rgba(241,245,249,0.8) and 88.304% / rgba(241,245,249,0)).
           Hidden on narrow viewports, where a 200px fade on each side covers the strip. */}
-      <div
-        className="pointer-events-none absolute inset-y-0 left-0 z-30 hidden w-[200px] bg-gradient-to-r from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
-        aria-hidden="true"
-      />
-      <div
-        className="pointer-events-none absolute inset-y-0 right-0 z-30 hidden w-[200px] bg-gradient-to-l from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
-        aria-hidden="true"
-      />
+        <div
+          className="pointer-events-none absolute inset-y-0 left-0 z-30 hidden w-[200px] bg-gradient-to-r from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
+          aria-hidden="true"
+        />
+        <div
+          className="pointer-events-none absolute inset-y-0 right-0 z-30 hidden w-[200px] bg-gradient-to-l from-[#f1f5f9] via-[69.624%] via-[rgba(241,245,249,0.8)] to-[88.304%] to-[rgba(241,245,249,0)] lg:block"
+          aria-hidden="true"
+        />
+      </div>
     </div>
   );
 }

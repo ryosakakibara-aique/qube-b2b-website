@@ -191,7 +191,7 @@ export default function Home() {
         >
           PANDORA - our most advanced Smart Locker yet
         </Reveal>
-        <Reveal as="div" index={1} className="mt-8">
+        <Reveal as="div" index={1} variant="move" className="mt-8">
           <PandoraShowcaseGrid />
         </Reveal>
       </section>

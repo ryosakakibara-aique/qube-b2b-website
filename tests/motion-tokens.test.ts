@@ -22,6 +22,7 @@ import {
   logoReveal,
   panelDrop,
   revealFade,
+  revealMove,
   revealRise,
   routeEnter,
 } from "../components/motion/variants.ts";
@@ -109,6 +110,7 @@ test("every variant animates only composited properties", () => {
   const sets: Array<[string, Record<string, unknown>]> = [
     ["revealRise(0)", revealRise(0)],
     ["revealFade(0)", revealFade(0)],
+    ["revealMove(0)", revealMove(0)],
     ["heroHeading()", heroHeading()],
     ["heroSupport(1)", heroSupport(1)],
     ["heroVisual(3)", heroVisual(3)],
@@ -198,6 +200,20 @@ test("the hero cascade runs in the approved order and spacing", () => {
   );
 });
 
+test("the move reveal never fades, so it cannot multiply its children's opacity", () => {
+  /*
+    This variant exists for one composition: a bordered panel that moves into place while the tiles
+    inside it fade. A container that faded as well would multiply its opacity by theirs for as long as
+    the two overlap, and the tiles would come through dimmer than their own animation implies.
+  */
+  assert.equal("opacity" in revealMove(0).hidden, false);
+  assert.equal("opacity" in revealMove(0).visible, false);
+  assert.ok(
+    "y" in revealMove(0).hidden,
+    "it still moves: that is the whole point of it",
+  );
+});
+
 test("the fade reveal moves nothing", () => {
   const moved = [revealFade(0).hidden, revealFade(0).visible].filter(
     (state) => "y" in state,
@@ -230,22 +246,51 @@ test("a stagger stays bounded however long the list is", () => {
   assert.equal(
     staggerDelay(MAX_STAGGER_STEPS + 50),
     MAX_STAGGER_STEPS * STAGGER,
-    "a nine-cell grid must not leave its last cell waiting on eight steps.",
+    "the cap has to bound an open-ended list: this is what stops a long one still settling a second " +
+      "after it entered the viewport",
   );
   assert.equal(staggerDelay(-3), 0, "a negative index must not produce a negative delay.");
   assert.ok(Number.isFinite(staggerDelay(1e9)));
 });
 
-test("the logo sequence is bounded by its list, not by the cap", () => {
+test("the longest list in the application gives every item its own beat", () => {
+  /*
+    Eight steps is not an arbitrary number: the feature grid and the PANDORA showcase are the longest
+    staggered lists either side of nine cells. At a cap of five the last four cells of those grids
+    shared one delay and arrived as a block; lowering it again would reintroduce exactly that.
+  */
+  const NINE_CELLS = 9;
+  const delays = Array.from({ length: NINE_CELLS }, (_, index) => staggerDelay(index));
+
+  assert.equal(delays[0], 0);
+  assert.ok(
+    MAX_STAGGER_STEPS >= NINE_CELLS - 1,
+    `a nine-cell grid needs eight distinct steps, but the cap is ${MAX_STAGGER_STEPS}`,
+  );
+
+  for (let index = 1; index < delays.length; index += 1) {
+    assert.ok(
+      delays[index] > delays[index - 1],
+      `cell ${index + 1} shares its delay with cell ${index}: the wave stops and a block appears`,
+    );
+  }
+
+  assert.ok(
+    delays[delays.length - 1] + DURATION.reveal <= 1,
+    "and the whole grid should still have settled within a second of entering the viewport",
+  );
+});
+
+test("the logo sequence takes a smaller step than the general stagger", () => {
   assert.equal(logoDelay(0), 0, "the first logo must not wait");
   assert.ok(
-    logoDelay(7) > staggerDelay(7),
-    "the logo strip takes a smaller, uncapped step on purpose: it is always eight items, and every " +
-      "one of them must get its own beat, which the cap would deny to the last three.",
+    logoDelay(7) < staggerDelay(7),
+    "the logo strip deliberately uses a tighter step than the general stagger: eight small marks in " +
+      "one row read better as a quick ripple than as a slow wave",
   );
   assert.ok(
     logoDelay(7) <= 0.4,
-    "uncapped is only safe because eight items bound the tail; this fails if the list ever grows.",
+    "its tail is bounded by the list itself rather than by the cap; this fails if the strip grows",
   );
   assert.equal(
     logoDelay(-2),
@@ -253,18 +298,18 @@ test("the logo sequence is bounded by its list, not by the cap", () => {
     "a negative index must not produce a negative delay.",
   );
 
-  // The helpers above are only worth testing if the variants actually use them: these two assertions
-  // are what stop `logoReveal` quietly falling back to the capped stagger.
+  // The helpers above are only worth testing if the variants actually use them: these assertions are
+  // what stop `logoReveal` quietly falling back to the general stagger.
   assert.equal(
     logoReveal(7).visible.transition.delay,
     logoDelay(7),
-    "the logo variant must use the uncapped logo sequence, not the general capped stagger",
+    "the logo variant must use its own sequence, not the general staggered one",
   );
   assert.equal(logoReveal(0).visible.transition.delay, 0);
   assert.equal(
     revealRise(3).visible.transition.delay,
     staggerDelay(3),
-    "the general scroll reveal keeps the cap, which is what bounds an open-ended list",
+    "the general scroll reveal keeps using the capped helper",
   );
 });
 
@@ -362,6 +407,13 @@ test("the reveal primitives cannot render a link", () => {
     source,
     /data-reveal=""/,
     "the no-JavaScript fallback in app/layout.tsx targets [data-reveal].",
+  );
+
+  // And the sanctioned route for a link, which is needed where the link *is* the grid item.
+  assert.ok(
+    read("components/motion/reveal-link.tsx").includes("m.create(Link)"),
+    "links that are themselves grid items animate through m.create(Link); the alternative — wrapping " +
+      "one in a motion div — would move its grid placement onto the wrapper",
   );
 });
 

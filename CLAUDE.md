@@ -541,8 +541,8 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
     duration, easing or transition exists in any frame — so the motion system is an addition, and it
     is confined to the marketing routes: reveals and micro-interactions only, with no ambient
     lighting, particles, rotation, pointer tracking or parallax, because those are new visual design
-    rather than motion. It lives in `components/motion/` (one tokens module, one variants module, two
-    primitives, one provider mounted by `app/(marketing)/layout.tsx`), pages compose its variants
+    rather than motion. It lives in `components/motion/` (one tokens module, one variants module, the
+    reveal primitives, one provider mounted by `app/(marketing)/layout.tsx`), pages compose its variants
     rather than writing transitions inline, and `MOTION_ENABLED` turns all of the motion off at
     runtime — behaviour only: the vendor chunks still load, because a runtime constant cannot remove
     an import, so reclaiming the bytes means reverting the dependency. The hero cascades in over

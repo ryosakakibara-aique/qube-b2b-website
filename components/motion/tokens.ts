@@ -76,11 +76,13 @@ export const STAGGER = 0.06;
 /**
  * The stagger stops growing after this many steps.
  *
- * A nine-cell grid with an uncapped stagger would still be settling most of a second after it
- * entered the viewport, which reads as slow rather than premium. Capping the step count bounds the
- * tail however long the list is, without dropping the stagger entirely.
+ * Capping the step count bounds the tail however long a list is, which is what stops a long grid from
+ * still settling a second after it entered the viewport. Eight is set against the longest lists this
+ * application actually has — the nine-cell feature and showcase grids — so that every cell in them
+ * gets its own beat. At five, the last four cells of a nine shared a single delay and arrived as a
+ * block, which is the thing a stagger exists to avoid.
  */
-export const MAX_STAGGER_STEPS = 5;
+export const MAX_STAGGER_STEPS = 8;
 
 /** Scale applied while a control is pressed, used by the CSS utility only. */
 export const PRESS_SCALE = 0.98;

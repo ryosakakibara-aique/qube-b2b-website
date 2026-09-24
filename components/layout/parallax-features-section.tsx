@@ -30,7 +30,11 @@ const workspaceStats = [
   { label: "Users", value: "143", change: "+16%" },
 ];
 
-function FeatureCard({ title, description, index }: Feature & { index: number }) {
+function FeatureCard({
+  title,
+  description,
+  index,
+}: Feature & { index: number }) {
   return (
     <Reveal
       as="article"
@@ -46,12 +50,13 @@ function FeatureCard({ title, description, index }: Feature & { index: number })
           <h3 className="text-base font-bold text-[#27272a]">{title}</h3>
           <p className="mt-1 text-sm leading-5 text-[#3f3f46]">{description}</p>
         </div>
-        <Link
+        {/* User hid this for the meantime. */}
+        {/* <Link
           href="#"
           className="shrink-0 text-sm font-medium text-[#27272a] hover:underline"
         >
           Learn More
-        </Link>
+        </Link> */}
       </div>
     </Reveal>
   );
@@ -116,7 +121,7 @@ export function ParallaxFeaturesSection() {
           Products that prioritizes experience &amp; boosts efficiency
         </h2>
         <Link
-          href="#contact"
+          href="/products"
           className="inline-flex w-fit shrink-0 items-center rounded-xl bg-[#27272a] px-6 py-3 text-sm font-bold text-white"
         >
           Check our product suite

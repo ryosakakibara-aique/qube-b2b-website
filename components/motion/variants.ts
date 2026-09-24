@@ -19,7 +19,7 @@ import {
   staggerDelay,
 } from "@/components/motion/tokens";
 
-export type RevealVariantName = "rise" | "fade";
+export type RevealVariantName = "rise" | "fade" | "move";
 
 /** The three roles in the above-the-fold sequence. */
 export type HeroVariantName = "heading" | "support" | "visual";
@@ -98,6 +98,29 @@ export function revealFade(index = 0): VariantSet {
     hidden: { opacity: 0, transition: { duration: 0 } },
     visible: {
       opacity: 1,
+      transition: {
+        duration: DURATION.reveal,
+        ease: EASE_OUT,
+        delay: staggerDelay(index),
+      },
+    },
+  };
+}
+
+/**
+ * Scroll reveal without fading: movement only.
+ *
+ * The complement of `revealFade`, and it exists for containers whose *children* fade. A container that
+ * also faded would multiply its own opacity by theirs for as long as the two overlap, so the children
+ * would come through dimmer than their own animation implies. Moving the frame and fading the contents
+ * keeps one layer of opacity in the composition — used by the PANDORA showcase, where a bordered panel
+ * arrives and its tiles fill in behind it.
+ */
+export function revealMove(index = 0): VariantSet {
+  return {
+    hidden: { y: DISTANCE.reveal, transition: { duration: 0 } },
+    visible: {
+      y: 0,
       transition: {
         duration: DURATION.reveal,
         ease: EASE_OUT,
@@ -215,12 +238,24 @@ export const panelDrop = {
   },
 };
 
+/**
+ * The three scroll reveals, by name.
+ *
+ * A lookup rather than a chain of comparisons, so adding a fourth is a one-line change here rather
+ * than an edit to a conditional that silently defaults to `rise` if it is missed.
+ */
+const REVEALS: Record<RevealVariantName, (index: number) => VariantSet> = {
+  rise: revealRise,
+  fade: revealFade,
+  move: revealMove,
+};
+
 /** Resolves a reveal name to its variants. */
 export function revealVariants(
   name: RevealVariantName,
   index = 0,
 ): VariantSet {
-  return name === "fade" ? revealFade(index) : revealRise(index);
+  return REVEALS[name](index);
 }
 
 /**

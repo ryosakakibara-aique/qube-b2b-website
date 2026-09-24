@@ -93,6 +93,31 @@ test("the shape of each image matches the shape of its tile", () => {
   assert.deepEqual(failures, [], failures.join("\n"));
 });
 
+test("every tile animates in through the link itself", () => {
+  const source = read(COMPONENT);
+  const link = read("components/motion/reveal-link.tsx");
+
+  assert.equal(
+    [...source.matchAll(/<RevealLink/g)].length,
+    1,
+    "the tiles come from one mapped component, so there is a single call site to keep animated",
+  );
+  assert.ok(
+    source.includes('variant="fade"'),
+    "fade only: these tiles share their 1px rules with their neighbours, so moving one would pull " +
+      "the panel's edges apart mid-animation",
+  );
+  assert.ok(
+    source.includes("index={index}"),
+    "the index has to reach the link, or every tile animates at once",
+  );
+  assert.ok(
+    link.includes("m.create(Link)"),
+    "the link itself animates. Wrapping it in a motion div would move `lg:col-start-*`, " +
+      "`lg:col-span-2` and `lg:row-span-2` onto the wrapper and change the grid it sits in",
+  );
+});
+
 test("the photographs are marked decorative rather than invented", () => {
   assert.ok(
     source.includes('alt=""'),

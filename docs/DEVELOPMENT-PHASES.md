@@ -1388,6 +1388,40 @@ height cropped away by the wide banner. They are now two independent fields.
 **Verified**: 177 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0, with `/` and
 `/products` still static and the product routes still prerendered.
 
+**Round 20 — the PANDORA showcase tiles animate, and the stagger cap was wrong.** The client asked
+whether the feature-grid animation could be applied to the showcase. It could, but not the way it
+first appears, and doing it surfaced a flaw in the feature grid itself.
+
+- **The tiles are links that are also grid items.** `Reveal` deliberately cannot render an anchor, and
+  wrapping each link in a motion div would have moved `lg:col-start-*`, `lg:col-span-2` and
+  `lg:row-span-2` onto the wrapper — changing the grid the client had just approved as seamless. The
+  tiles animate through `m.create(Link)` instead (`components/motion/reveal-link.tsx`), the same
+  technique already used for images, so the anchor keeps its placement and Motion consumes its own
+  props rather than forwarding them. Verified in the built markup: each tile is still one `<a>` with
+  its grid classes and `data-reveal`, and no wrapper element was introduced.
+- **A third reveal variant, `move`.** Tiles fade but do not move, because they share their 1px rules;
+  the panel itself had to arrive *without* fading, because a container that also faded would multiply
+  its opacity by its children's for as long as the two overlap, and the tiles would come through
+  dimmer than their own animation implies. The page's wrapper is now `variant="move"`, so the frame
+  slides into place and the tiles fill it behind. The built markup shows the composition exactly: the
+  panel renders `transform:translateY(20px)` with no opacity, every tile renders `opacity:0` with no
+  transform.
+- **The stagger cap was too low, and reviewing the feature grid is what found it.** `MAX_STAGGER_STEPS`
+  was 5, which gave a nine-cell grid only five distinct delays — the last four cells arrived together
+  as a block, which is the thing a stagger exists to avoid. It is now 8, so every cell in both
+  nine-cell grids gets its own beat, and the grid still settles inside a second. That repairs the
+  feature grid too, which had carried the same flaw since it was built.
+- `revealVariants` became a lookup rather than a comparison chain, so a fourth reveal is one line here
+  instead of an edit to a conditional that silently falls back to `rise` when it is missed.
+
+**Verified**: 180 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0. Two
+existing tests changed because they asserted the old rationale — the stagger test claimed a nine-cell
+grid must *not* give its last cell its own step, which is now precisely what it must do — and four
+assertions are new: that the move reveal never fades, that the logo strip's tighter step is a
+deliberate choice rather than a workaround for the cap, that the tiles animate through the link itself
+rather than a wrapper, and that the longest list in the application still gives every item its own
+beat.
+
 ---
 
 ## Appendix A — Verification command cookbook
