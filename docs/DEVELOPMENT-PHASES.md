@@ -1462,6 +1462,140 @@ and the dark PNG to `prefers-color-scheme: dark` — and no reference to `/favic
 from `public/` for direct requests. Not verified: that Chrome honours `media` on icons at all (no
 browser exists in this workspace) and how the mark reads at 16 px in a real tab strip.
 
+**Round 22 — the marquee's logos were never centred in their cells.** The client reported that the
+client logos over the "Our Clients" panel are not centred on mobile. They were not centred at any
+width, and the cause was an alignment default rather than a mobile rule.
+
+- **The marquee's logos are their own grid items.** The hero strip wraps each logo in a
+  `flex items-center justify-center` div, which stretches to the cell and centres what is inside it.
+  The marquee has no wrapper, so the centring had to come from the grid — and nothing set
+  `justify-items`. A grid item that is a replaced element with an intrinsic size and aspect ratio
+  resolves `justify-self: normal` to `start` rather than `stretch`, so every logo sat flush against
+  the left edge of a cell that was as wide as the widest logo (ISM, 162 px). `items-center` looked
+  like it covered this, but it governs the block axis only.
+- **The fix is `justify-items-center` on the marquee variant's grid class.** One class, no wrapper,
+  and the hero variant is untouched. The comment that claimed the marquee's logos "need no wrapper"
+  because its cells are content-sized is corrected: the cells *are* content-sized, and that is exactly
+  why the slack was visible on every logo's right.
+- **Mobile was the worst case, not the only one.** Computed from the CSS rather than measured (there
+  is still no browser here): at 390 px the two columns are 131 px wide, and RHK (35 px) left 96 px of
+  its cell empty to its right; at 1440 px the same row left 93 px. The client asked for the 2 × 4
+  mobile arrangement to be kept, so the column counts are unchanged and only the alignment moved.
+- **A separate mobile-only effect is recorded, not fixed.** Below `sm` the cells are narrower than the
+  widest logo's max-content width, and Tailwind's preflight (`img { max-width: 100% }`) then scales
+  that logo down — ISM renders 124 × 17 at 375 px against 162 × 22 at desktop, smaller than the logos
+  beside it. Centring does not address it and the client has not raised it.
+
+**Verified**: 188 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0. The two new
+assertions — that the marquee centres through the grid and keeps 2 × 4 — were proved non-vacuous by
+deleting `justify-items-center` and watching exactly those two tests, and no others, fail, then
+restoring it. The built stylesheet contains `.justify-items-center{justify-items:center}` and the
+prerendered HTML of `/` carries the class on the marquee grid and not on the hero's.
+
+**Round 23 — the product tags become one chip, and the overflow stops being silent.** The client
+raised the tags as "not a component and … varying sizes and values". They were right, and worse than
+that: two chips that agreed on nothing, and a bare `slice(0, 3)` that discarded up to nine of the
+twelve tags the CMS accepts.
+
+- **What was actually there.** The carousel drew an 8px-radius chip with a translucent brand-gradient
+  fill and gradient-clipped text, all in hex and `rgba()` literals; the product page drew a *pill*
+  with a `--brand-3` outline and `--brand-ink` text; and `parallax-features-section.tsx` drew a third,
+  near-identical chip (0.5px border, full-opacity `#00c290`, `via-[49.519%]`) for its mock workspace
+  label. The same brand gradient was written five different ways across the codebase. Only the page's
+  chip was corroborated by the documentation — `DEVELOPMENT-PHASES.md` §QA records tags as
+  `--brand-ink` at 5.00:1 — and radius 8 already existed as the `--radius-chip` token the CMS uses in
+  eight places.
+- **The client's decisions, and one that followed from them.** Radius **8px** (`--radius-chip`, not a
+  new value) and ink **`--brand-ink`** in both contexts. That combination rules out keeping the
+  card's translucent fill: brand ink over it measures **3.82:1** against the card's surface, under the
+  4.5:1 AA floor for 10px text, while the same ink on the unfilled surface measures **5.00:1** — the
+  documented value. So the fill was dropped rather than kept, and the two contexts are now the same
+  chip at two scales. The card's tier scaling stays, because the card itself resizes 236 → 212.4 →
+  188.8px and a fixed chip would be oversized on the outer tiers.
+- **`components/products/product-tags.tsx`** owns the chip: its tokens, its three card tiers, the
+  page's single size, and the list semantics (a `ul`/`li` on the page, plain spans inside the card,
+  which is already one link). Both call sites render it, and neither contains a colour, a radius or a
+  size any more.
+- **The overflow rule is now logic, not a slice.** `lib/products/tags.ts` holds
+  `selectTags(tags, limit)` and `CARD_TAG_LIMIT = 3`; a card shows three and draws a `+n` chip for the
+  rest. The count is the number hidden, the visible `+n` is `aria-hidden`, and the sentence beside it
+  — "3 more tags" — is what assistive technology reads, because a bare "+3" inside a card's link is not
+  a sentence. The rule sits in a module of its own precisely because the chip renders JSX and Node's
+  test runner cannot import that, so the arithmetic is tested for real rather than by reading source.
+- **Not done, deliberately:** the CMS `Tags` field is still a comma-separated input. Chip entry would
+  change nothing about stored data — the column is `text[]` and the parser already trims and
+  de-duplicates — but the client asked what happens to existing tags before agreeing, so it waits.
+
+**Verified**: 199 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0. Two
+breakages were injected to prove the new tests bite: removing the carousel's `limit` prop failed the
+call-site assertion, and raising `CARD_TAG_LIMIT` to the CMS's `MAX_TAG_COUNT` failed both the
+overflow test and the new invariant that keeps the `+n` chip reachable. In the built HTML: all 24 card
+chips are `span`s drawn at the tier their card is at (checked against each card's rendered width, 24 of
+24), the two product pages that carry tags render `<li>` chips at one size inside a
+`flex flex-wrap justify-center gap-2` list, and the live data — two products with six and four tags —
+produces six `+3`/`+1` chips with "3 more tags" and "1 more tag" beside them. No `bg-clip-text` and no
+`rgba(0,194,144` remains anywhere in the rendered product markup.
+
+**Round 24 — the business-features grid is rebuilt from the design's geometry, and grows to twelve
+cells.** The client reported that the panel's outer border was visible but the grid's own borders "do
+not occupy the width", and asked for a headline per cell plus twelve categories instead of nine.
+
+- **Three faults, all in the cell borders.** The vertical rule was `lg:border-r`, so the two-column
+  layout between 640 and 1023px had **no divider at all**; every cell carried both `border-b` and
+  `lg:border-r` *including* the last column and the last row, so the panel's right and bottom edges
+  were drawn twice and read 2px against the frame's 1px; and both doubled rules were then clipped by
+  the panel's rounded `overflow-hidden`, so they stopped short of the corners instead of meeting the
+  frame — which is what "does not occupy the width" was describing.
+- **The design settles the mechanism.** `docs/design/design-geometry.json` still holds frame `1:1117`:
+  a panel of 1040 × 624 at `rx 29.5` (→ **30px**, the `--radius-shell` token, where the code used the
+  16px card token), white-filled, containing nine tiles **346.667px wide sitting adjacent** — three
+  columns summing to exactly 1040 — with rows 224 / 200 / 200. Adjacent tiles' 1px strokes coincide on
+  the shared edge, so the design draws **one line per division**, and the panel is stroked, not filled
+  with a heavy border. That is a `gap-px` grid over a background of the line colour with opaque cells
+  on top, which produces one line per division at every breakpoint and never touches a corner. Cell
+  borders cannot be made to do this without per-breakpoint `nth-child` rules, and would still collide
+  with the frame.
+- **Mobile is one column, and that is design-confirmed.** The mobile frame (`1:556`) carries the same
+  panel at 370 × 1800 — nine rows of 199 at a 200px pitch — so `grid-cols-1` was already right, and
+  `sm:grid-cols-2` remains the inference it always was (there is no tablet frame). Two things in that
+  frame are recorded rather than acted on: the section padding is **16px** on mobile where the code
+  uses 24 (`px-6`) throughout the marketing pages, and that is a site-wide change, not this section's.
+- **Twelve cells is a deviation.** The frame has nine; the client supplied twelve, which is the source
+  of truth. Twelve divides by 1, 2 and 3, so every breakpoint still fills whole rows.
+- **The cell is now title, headline, body.** `<h3>` keeps the title, so each cell still carries exactly
+  one heading and neither the document outline nor the structured data changed; the headline is a
+  `p` at the title's size in bold — one weight step heavier, which is what the client asked for — and
+  the body is unchanged. `auto-rows-fr` gives the equal row heights the client chose, which is a small
+  desktop deviation from the design's own 224/200/200.
+- **The stagger cap had to move with the content.** `MAX_STAGGER_STEPS` was 8, so cells 10–12 would
+  have shared one delay and arrived as a block — the same fault Round 20 fixed at nine cells, now one
+  cell further out. It is **11**: every one of the twelve gets its own beat, and the grid settles at
+  11 × 60ms + the 450ms reveal ≈ **1.11s**, past the ~1s this was previously held to. The client chose
+  the individual beat over the shorter total. Two existing tests had to change with it: one asserted
+  the old nine-cell premise, and both compared a raw `MAX_STAGGER_STEPS * STAGGER` product, which is
+  `0.6600000000000001` as a double while `staggerDelay` returns the rounded `0.66`.
+- **Copy corrections, approved by the client:** "Heathcare" → **Healthcare**; the four headlines that
+  carried trailing spaces trimmed; and Lifestyle Parks, the one entry not in the house style, became
+  *"Enjoy More, Carry Less."* / *"Walk, jog, shop, and enjoy more when you carry less of your
+  things."*
+
+**Verified**: 205 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0, with four
+assertions added for this section (twelve categories each with all three fields and no stray
+whitespace, the corrections staying corrected, the panel's 30px radius and white fill, `auto-rows-fr`,
+the three column counts, the gap mechanism with no edge rule left on any cell, and fade-only reveals).
+Three breakages were injected to prove they bite: restoring the old `border-b`/`lg:border-r` cells, and
+removing `gap-px`, and returning the radius to the 16px card token each failed the tests written for
+them. In the built HTML the panel renders
+`overflow-hidden rounded-[30px] border border-[var(--border-subtle)] bg-white`, the grid renders
+`auto-rows-fr grid-cols-1 gap-px bg-[var(--border-subtle)] sm:grid-cols-2 lg:grid-cols-3`, and all
+twelve cells render `flex h-full w-full flex-col items-start justify-start bg-[var(--background)] p-5`
+with no border utility of any kind.
+
+**Not green at the time of writing:** four assertions in `tests/pandora-showcase-images.test.ts` fail
+against the client's in-flight edit to `components/layout/pandora-showcase-grid.tsx`, which removed the
+tiles' images, their `alt=""` and the `RevealLink` wrapper. They are unrelated to this round and were
+left alone rather than rewritten, because that change is still in progress.
+
 ---
 
 ## Appendix A — Verification command cookbook

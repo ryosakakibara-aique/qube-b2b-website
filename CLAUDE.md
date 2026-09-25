@@ -551,6 +551,18 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
     (`heroHeading()` accepts no index, which makes that structural). The measured cost
     is ~32 KB gzipped of vendor JavaScript per marketing page — more than the library documents, which
     is recorded rather than glossed. Full rationale: [docs/DEVELOPMENT-PHASES.md](docs/DEVELOPMENT-PHASES.md) §1.1 (D9) and Round 14.
+13. **A product tag is one chip, drawn at two scales.** `components/products/product-tags.tsx` is the
+    only place a tag is styled: radius `--radius-chip` (8px) and ink `--brand-ink`, in the carousel and
+    on the product page alike, with the card's chips stepping down through the carousel's three card
+    tiers because the card itself resizes 236 → 188.8px. The carousel's translucent brand-gradient fill
+    is **not** kept: brand ink over that fill measures 3.82:1 against the card's surface, under the
+    4.5:1 AA floor for text this size, against 5.00:1 without it — the value the contrast table already
+    records for tags. A card shows three tags and collapses the rest into a `+n` chip
+    (`lib/products/tags.ts`, `CARD_TAG_LIMIT`), which must stay below the CMS's `MAX_TAG_COUNT` of 12 or
+    the badge becomes dead code; the count is `aria-hidden` with "3 more tags" beside it for assistive
+    technology. The CMS `Tags` field is still comma-separated text — switching it to chip entry changes
+    no stored data (the column is `text[]`), and that change is still pending. The mock workspace label
+    in `parallax-features-section.tsx` keeps its own chip: it is a picture of a dashboard, not a tag.
 
 ### Known gaps
 
@@ -562,7 +574,9 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
 - **The mobile layout is inferred, not designed.** Only desktop frames are readable, so the collapsed
   navbar, the H1 leading/tracking below `lg`, the section padding and the 16px form inputs come from
   the existing tokens plus the client's mobile spot-test notes rather than from a mobile frame. Each is
-  a single class or one `globals.css` rule, so a corrected mobile export replaces them cheaply.
+  a single class or one `globals.css` rule, so a corrected mobile export replaces them cheaply. One
+  mobile behaviour is confirmed by the client rather than inferred: the "Our Clients" logo grid stays
+  two columns by four rows, with each logo centred in its cell (Round 22).
 - **The motion system is unverified as an experience.** There is no browser in this workspace, so the
   reveals, the hover and press feedback and the reduced-motion behaviour are unit- and build-verified
   only; they need the client's device. The vocabulary is deliberately small for that reason.

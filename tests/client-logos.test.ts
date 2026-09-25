@@ -146,7 +146,7 @@ test("both contexts' layout survives the animation", () => {
 
   const mustSurvive = [
     "grid grid-cols-2 items-center gap-x-10 gap-y-6 sm:grid-cols-4",
-    "grid grid-cols-2 items-center gap-x-8 gap-y-4 sm:grid-cols-4",
+    "grid grid-cols-2 items-center justify-items-center gap-x-8 gap-y-4 sm:grid-cols-4",
     "h-auto w-auto",
     "h-auto max-h-8 w-auto opacity-90",
   ];
@@ -169,5 +169,48 @@ test("both contexts' layout survives the animation", () => {
     grid,
     /centred=\{centreEachLogo\}/,
     "the wrapper choice has to stay driven by the variant",
+  );
+});
+
+test("the marquee centres its logos in their cells, on both axes", () => {
+  const grid = read(GRID);
+  const marquee = grid.slice(grid.indexOf("marquee: {"), grid.indexOf("} as const"));
+
+  assert.match(
+    marquee,
+    /justify-items-center/,
+    "the marquee's logos are the grid items, so the grid has to centre them: a grid item that is a " +
+      "replaced element with an intrinsic size and aspect ratio aligns to `start` instead of " +
+      "stretching, which left every logo packed against the left edge of a cell as wide as the " +
+      "widest logo. That is the fault the client reported on mobile, and it was present at every " +
+      "width — do not remove this class.",
+  );
+  assert.match(
+    marquee,
+    /items-center/,
+    "the block axis still needs centring, or short logos sit against the top of their row while the " +
+      "tall ones fill it",
+  );
+
+  assert.ok(
+    !marquee.includes("centreEachLogo: true"),
+    "the marquee centres through the grid, not through the hero's wrapper: the wrapper would put a " +
+      "div between each logo and the cell it is placed in",
+  );
+});
+
+test("the mobile grid stays two columns, four rows", () => {
+  const grid = read(GRID);
+  const marquee = grid.slice(grid.indexOf("marquee: {"), grid.indexOf("} as const"));
+
+  assert.ok(
+    marquee.includes("grid-cols-2") && marquee.includes("sm:grid-cols-4"),
+    "the client asked for the 2 x 4 arrangement on mobile to be retained while the logos are " +
+      "centred in their cells, so the column counts themselves must not change",
+  );
+  assert.equal(
+    [...grid.matchAll(/grid-cols-2/g)].length,
+    2,
+    "both contexts are two columns below `sm`, and only the hero's larger gaps separate them",
   );
 });

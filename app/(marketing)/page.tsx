@@ -30,43 +30,78 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * The business-features grid.
+ *
+ * Twelve cells: a category title, the headline that sells it, and a sentence of detail. The Figma
+ * frame carries nine, so the extra three are a deliberate content deviation (Round 24) — the client's
+ * list is the source of truth. Twelve happens to divide by 1, 2 and 3, so the grid still fills whole
+ * rows at every breakpoint.
+ *
+ * Kept in page order rather than sorted: the first cells are the ones a visitor reads, and the card
+ * stagger follows this order.
+ */
 const businessFeatures = [
-  [
-    "Terminals",
-    "Give travelers a secure spot to store luggage while they move freely between gates and transit.",
-  ],
-  [
-    "Offices",
-    "Free up desk space and keep employee belongings safe with smart locker systems throughout the workplace.",
-  ],
-  [
-    "Theme Parks",
-    "Let guests stash bags and prizes securely so they can enjoy rides and attractions hands-free.",
-  ],
-  [
-    "Hotels",
-    "Offer attendees convenient storage for coats, bags, and gear so they feel welcome in the experience.",
-  ],
-  [
-    "Events",
-    "Flexible storage for conference attendees and guests, giving guests a better experience in the venue.",
-  ],
-  [
-    "Recreational Areas",
-    "Keep personal items safe while visitors enjoy outdoor activities like sports, hiking, and swimming.",
-  ],
-  [
-    "Restaurants",
-    "Allow diners to securely store shopping bags and outerwear for a more comfortable dining experience.",
-  ],
-  [
-    "Residentials",
-    "Give residents 24/7 parcel collection and personal storage right in their building lobby.",
-  ],
-  [
-    "Resorts",
-    "Enhance the guest experience with secure storage for luggage, valuables, and beach essentials.",
-  ],
+  {
+    title: "Hospitals & Healthcare",
+    headline: "Secure Storage for Staff and Healthcare Environments.",
+    text: "Give medical staff convenient, keyless access to personal storage while helping keep shared spaces organized and focused on care.",
+  },
+  {
+    title: "Factories & Manufacturing",
+    headline: "Streamline Shift Changes and Employee Storage.",
+    text: "Simplify employee storage and handoffs while helping keep shift changes organized and operations moving.",
+  },
+  {
+    title: "Terminals",
+    headline: "Secure Storage for Passengers Between Connections.",
+    text: "Give travelers a convenient place to store luggage while they wait, dine, shop, or move between connections.",
+  },
+  {
+    title: "Offices & Corporate",
+    headline: "Free Up Space. Simplify Workplace Storage.",
+    text: "Manage employee belongings and selected workplace assets through connected storage designed for the needs of modern offices.",
+  },
+  {
+    title: "Theme Parks",
+    headline: "Improve Guest Mobility and Experience.",
+    text: "Give guests secure storage for bags and belongings so they can move through your destination more freely and enjoy more of the experience.",
+  },
+  {
+    title: "Schools & Universities",
+    headline: "Bring Campus Storage Into the Digital Age.",
+    text: "Give students and staff convenient, connected access to storage for books, devices, and personal belongings.",
+  },
+  {
+    title: "Events & Convention Centers",
+    headline: "Clear the Floor. Improve the Attendee Experience.",
+    text: "Provide convenient storage for coats, bags, and belongings so attendees can network, explore, and participate without carrying everything with them.",
+  },
+  {
+    title: "Recreational Areas",
+    headline: "Secure Storage for Active Destinations.",
+    text: "Give runners, visitors, athletes, and active guests a convenient place to store belongings while they enjoy the destination.",
+  },
+  {
+    title: "Restaurants",
+    headline: "Reduce Counter Congestion. Improve the Handoff.",
+    text: "Support secure customer storage and streamline delivery handoffs so front-of-house teams can stay focused on service.",
+  },
+  {
+    title: "Residential",
+    headline: "A Smarter Extension of Your Property's Concierge.",
+    text: "Give residents 24/7 access to convenient parcel and personal storage while reducing manual handling for property teams.",
+  },
+  {
+    title: "Resorts",
+    headline: "Simplify Luggage Storage. Improve the Guest Experience.",
+    text: "Give guests convenient storage for luggage, valuables, and belongings before check-in, after check-out, or throughout their stay.",
+  },
+  {
+    title: "Lifestyle Parks",
+    headline: "Enjoy More, Carry Less.",
+    text: "Walk, jog, shop, and enjoy more when you carry less of your things.",
+  },
 ];
 
 export default function Home() {
@@ -159,23 +194,46 @@ export default function Home() {
         >
           Built for every businesses
         </Reveal>
-        <div className="mt-8 grid grid-cols-1 overflow-hidden rounded-[var(--radius-card-sm)] border border-[var(--border-subtle)] sm:grid-cols-2 lg:grid-cols-3">
-          {businessFeatures.map(([title, body], index) => (
-            /* Fade only. These cells share their 1px rules with their neighbours, so rising one
-               would visibly pull the grid lines apart mid-animation. */
-            <Reveal
-              as="article"
-              key={title}
-              index={index}
-              variant="fade"
-              className="min-h-[150px] border-b border-[var(--border-subtle)] p-5 lg:border-r"
-            >
-              <h3 className="text-sm font-semibold">{title}</h3>
-              <p className="mt-3 text-sm leading-5 text-[var(--text-muted)]">
-                {body}
-              </p>
-            </Reveal>
-          ))}
+        {/*
+          The grid lines are the panel's own background showing through 1px gaps, not borders on the
+          cells. The Figma frame draws them that way — nine tiles 346.667px wide sitting adjacent in a
+          1040px panel, their 1px strokes coincident on the shared edges — and cell borders cannot
+          reproduce it: a right border on every cell doubles the frame's own right edge and a bottom
+          border doubles its bottom edge, and both are then clipped short by the panel's rounded
+          corners. Gaps produce one line per division, at every breakpoint, and never touch a corner.
+          The radius is the design's 30px (measured 29.5), not the 16px card token this used to use.
+        */}
+        <div className="mt-8 w-full overflow-hidden rounded-[30px] border border-[var(--border-subtle)] bg-white">
+          <div className="grid auto-rows-fr grid-cols-1 gap-px bg-[var(--border-subtle)] sm:grid-cols-2 lg:grid-cols-3">
+            {businessFeatures.map(({ title, headline, text }, index) => (
+              /* Fade only. A gap is the line here, so translating a cell would slide it off the
+                 grid's background and open a 20px band of border colour behind it. */
+              <Reveal
+                as="article"
+                key={title}
+                index={index}
+                variant="fade"
+                className="flex h-full w-full flex-col items-start justify-start bg-[var(--background)] p-5"
+              >
+                <div className="flex gap-2 h-fit w-fit items-center justify-center">
+                  <div
+                    className="rounded-full bg-gradient-to-b from-[#00c290] via-[49.519%] via-[#0fb8aa] to-[#1fadc5]"
+                    style={{
+                      width: "5px",
+                      height: "14px",
+                    }}
+                  ></div>
+                  <h3 className="text-sm font-semibold text-[var(--text-muted)]">
+                    {title}
+                  </h3>
+                </div>
+                <p className="mt-1 text-md font-bold">{headline}</p>
+                <p className="mt-3 text-sm leading-5 text-[var(--text-muted)]">
+                  {text}
+                </p>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 

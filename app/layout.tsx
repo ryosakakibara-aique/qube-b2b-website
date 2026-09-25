@@ -49,7 +49,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
+    <html
+      lang="en"
+      className={`${inter.variable} h-full antialiased scroll-smooth`}
+      data-scroll-behavior="smooth"
+    >
       <body className="min-h-full">
         {/*
           Reveal-on-scroll ships its hidden state in the markup so the element can animate in. That

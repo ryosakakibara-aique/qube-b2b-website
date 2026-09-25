@@ -32,14 +32,21 @@ export const CLIENT_LOGOS = [
 
 /**
  * The two contexts differ in three ways, and all three are reproduced here rather than normalised:
- * the gaps, the image class, and whether each logo sits inside a centring wrapper.
+ * the gaps, the image class, and how each logo is centred in its cell.
  *
  * Normalising them would have been a visual change to one of the two pages, and this workspace has
  * no browser in which to judge it. Reconciling them is a design decision, not a refactor.
  *
- * - `hero` — the strip under the hero video placeholder, where each logo is centred in its cell.
- * - `marquee` — the overlay grid on the "Our Clients" panel. Its cell widths are content-sized, so
- *   the logos need no wrapper; it also carries `opacity-90` because it sits over moving rows.
+ * - `hero` — the strip under the hero video placeholder. Each logo sits inside a centring wrapper,
+ *   which is a flex box and therefore stretches to the cell its logo is centred inside.
+ * - `marquee` — the overlay grid on the "Our Clients" panel. The logos *are* the grid items, so the
+ *   centring has to be the grid's own: `justify-items-center`. Without it they are not centred at
+ *   all — a grid item that is a replaced element with an intrinsic size and aspect ratio aligns to
+ *   `start` rather than stretching, so every logo was packed against the left edge of its cell while
+ *   the cell itself stayed as wide as the widest logo (the client-reported fault on mobile, and it
+ *   was present at every width). `items-center` only ever governed the block axis, which is why it
+ *   looked like centring was already handled. It also carries `opacity-90` because it sits over
+ *   moving rows.
  */
 const VARIANTS = {
   hero: {
@@ -48,7 +55,7 @@ const VARIANTS = {
     centreEachLogo: true,
   },
   marquee: {
-    grid: "grid grid-cols-2 items-center gap-x-8 gap-y-4 sm:grid-cols-4",
+    grid: "grid grid-cols-2 items-center justify-items-center gap-x-8 gap-y-4 sm:grid-cols-4",
     image: "h-auto max-h-8 w-auto opacity-90",
     centreEachLogo: false,
   },

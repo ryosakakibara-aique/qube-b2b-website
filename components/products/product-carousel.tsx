@@ -3,9 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { ProductTags } from "@/components/products/product-tags";
+import { CARD_TAG_LIMIT } from "@/lib/products/tags";
 import type { Product } from "@/lib/products/types";
 
-// Figma exact pixel sizes — 3 tiers based on distance from the active card
+// Figma exact pixel sizes — 3 tiers based on distance from the active card.
+//
+// The tag chip's sizes are deliberately absent: the chip is shared with the product page, so
+// `components/products/product-tags.tsx` owns them and scales them by this same tier.
 const SIZES = {
   active: {
     w: 236,
@@ -15,8 +20,6 @@ const SIZES = {
     innerGap: 6,
     fs: 16,
     fsSmall: 12.8,
-    fsTag: 10,
-    tagPx: 12,
   },
   adjacent: {
     w: 212.4,
@@ -26,8 +29,6 @@ const SIZES = {
     innerGap: 5.4,
     fs: 14.4,
     fsSmall: 11.5,
-    fsTag: 9,
-    tagPx: 10.8,
   },
   rest: {
     w: 188.8,
@@ -37,8 +38,6 @@ const SIZES = {
     innerGap: 4.8,
     fs: 12.8,
     fsSmall: 10.2,
-    fsTag: 8,
-    tagPx: 9.6,
   },
 } as const;
 
@@ -276,34 +275,15 @@ export function ProductCarousel({ products }: { products: Product[] }) {
                     </p>
                   </div>
 
-                  {/* Tags */}
-                  <div
-                    className="flex flex-wrap"
-                    style={{
-                      gap: size.innerGap,
-                      paddingTop: size.innerGap / 2,
-                    }}
-                  >
-                    {product.tags.slice(0, 3).map((tag) => (
-                      <span
-                        key={tag}
-                        className="rounded-lg border border-[#00c290]/40 bg-gradient-to-b from-[rgba(0,194,144,0.3)] via-[rgba(15,184,170,0.3)] to-[rgba(31,173,197,0.3)]"
-                        style={{
-                          paddingLeft: size.tagPx,
-                          paddingRight: size.tagPx,
-                          paddingTop: 1,
-                          paddingBottom: 1,
-                        }}
-                      >
-                        <span
-                          className="bg-gradient-to-b from-[#00c290] via-[#0fb8aa] to-[#1fadc5] bg-clip-text font-medium text-transparent whitespace-nowrap"
-                          style={{ fontSize: size.fsTag }}
-                        >
-                          {tag}
-                        </span>
-                      </span>
-                    ))}
-                  </div>
+                  {/* Tags. The chip is the product page's chip at this card's tier, and a product
+                      with more than three tags collapses the rest into a "+n" chip rather than
+                      dropping them silently. */}
+                  <ProductTags
+                    tags={product.tags}
+                    variant="card"
+                    tier={tier}
+                    limit={CARD_TAG_LIMIT}
+                  />
                 </div>
               </Link>
             );

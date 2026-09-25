@@ -7,6 +7,7 @@ import { SiteFooter } from "@/components/layout/site-footer";
 import { SuccessStoriesCarousel } from "@/components/layout/success-stories-carousel";
 import { ContactSection } from "@/components/marketing/contact-section";
 import { HeroReveal, Reveal } from "@/components/motion/reveal";
+import { ProductTags } from "@/components/products/product-tags";
 import { JsonLd } from "@/components/seo/json-ld";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/notice";
@@ -253,15 +254,8 @@ export default async function ProductPage({
         )}
 
         {productData.tags.length > 0 ? (
-          <Reveal as="ul" className="mt-14 flex flex-wrap justify-center gap-2">
-            {productData.tags.map((tag) => (
-              <li
-                key={tag}
-                className="rounded-full border border-[var(--brand-3)] px-3 py-1 text-[10px] text-[var(--brand-ink)]"
-              >
-                {tag}
-              </li>
-            ))}
+          <Reveal as="div" className="mt-14 flex justify-center">
+            <ProductTags tags={productData.tags} variant="page" />
           </Reveal>
         ) : null}
       </section>

@@ -77,12 +77,17 @@ export const STAGGER = 0.06;
  * The stagger stops growing after this many steps.
  *
  * Capping the step count bounds the tail however long a list is, which is what stops a long grid from
- * still settling a second after it entered the viewport. Eight is set against the longest lists this
- * application actually has — the nine-cell feature and showcase grids — so that every cell in them
- * gets its own beat. At five, the last four cells of a nine shared a single delay and arrived as a
- * block, which is the thing a stagger exists to avoid.
+ * still settling long after it entered the viewport. Eleven is set against the longest list this
+ * application actually has — the twelve-cell business-features grid — so that every cell in it gets
+ * its own beat. Nine (and the eight before it) was set when the longest grid held nine cells; a cap of
+ * eight leaves the tenth, eleventh and twelfth cells sharing one delay and arriving as a block, which
+ * is the thing a stagger exists to avoid.
+ *
+ * The cost is the tail: twelve cells settle at 11 × 60ms + the 450ms reveal, about 1.11s, which is
+ * past the ~1s this was previously held to. The client chose an individual beat per cell over the
+ * shorter total (Round 24).
  */
-export const MAX_STAGGER_STEPS = 8;
+export const MAX_STAGGER_STEPS = 11;
 
 /** Scale applied while a control is pressed, used by the CSS utility only. */
 export const PRESS_SCALE = 0.98;

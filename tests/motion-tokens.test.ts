@@ -194,9 +194,11 @@ test("the hero cascade runs in the approved order and spacing", () => {
   assert.equal(at(2).support, STAGGER * 2, "the eyebrow row starts one step after the CTA");
   assert.equal(at(3).visual, STAGGER * 3, "the hero visual is last, at 180ms");
   assert.equal(
-    at(9).visual,
-    MAX_STAGGER_STEPS * STAGGER,
-    "and the cascade stays bounded even if the visual is given a high index.",
+    at(MAX_STAGGER_STEPS + 4).visual,
+    Number((MAX_STAGGER_STEPS * STAGGER).toFixed(4)),
+    "and the cascade stays bounded even if the visual is given a high index. The index has to sit " +
+      "above the cap to test the cap, and the expectation is rounded the way `staggerDelay` rounds, " +
+      "because 11 x 0.06 is 0.6600000000000001 in floating point.",
   );
 });
 
@@ -240,13 +242,17 @@ test("the route wrapper never transforms", () => {
 });
 
 test("a stagger stays bounded however long the list is", () => {
+  // The expectation is rounded the way `staggerDelay` rounds: 11 x 0.06 is 0.6600000000000001 as a
+  // double, so the raw product is not what the function returns.
+  const capped = Number((MAX_STAGGER_STEPS * STAGGER).toFixed(4));
+
   assert.equal(staggerDelay(0), 0);
   assert.equal(staggerDelay(1), STAGGER);
-  assert.equal(staggerDelay(MAX_STAGGER_STEPS), MAX_STAGGER_STEPS * STAGGER);
+  assert.equal(staggerDelay(MAX_STAGGER_STEPS), capped);
   assert.equal(
     staggerDelay(MAX_STAGGER_STEPS + 50),
-    MAX_STAGGER_STEPS * STAGGER,
-    "the cap has to bound an open-ended list: this is what stops a long one still settling a second " +
+    capped,
+    "the cap has to bound an open-ended list: this is what stops a long one still settling long " +
       "after it entered the viewport",
   );
   assert.equal(staggerDelay(-3), 0, "a negative index must not produce a negative delay.");
@@ -255,17 +261,19 @@ test("a stagger stays bounded however long the list is", () => {
 
 test("the longest list in the application gives every item its own beat", () => {
   /*
-    Eight steps is not an arbitrary number: the feature grid and the PANDORA showcase are the longest
-    staggered lists either side of nine cells. At a cap of five the last four cells of those grids
-    shared one delay and arrived as a block; lowering it again would reintroduce exactly that.
+    The cap is not an arbitrary number: it is set against the longest staggered list this application
+    has, which is the twelve-cell business-features grid. It was eight while that grid held nine cells;
+    at eight the tenth, eleventh and twelfth cells would share one delay and arrive as a block, which
+    is the thing a stagger exists to avoid. Raising it costs tail time — twelve cells settle at about
+    1.11s — and the client chose an individual beat per cell over the shorter total (Round 24).
   */
-  const NINE_CELLS = 9;
-  const delays = Array.from({ length: NINE_CELLS }, (_, index) => staggerDelay(index));
+  const LONGEST_GRID = 12;
+  const delays = Array.from({ length: LONGEST_GRID }, (_, index) => staggerDelay(index));
 
   assert.equal(delays[0], 0);
   assert.ok(
-    MAX_STAGGER_STEPS >= NINE_CELLS - 1,
-    `a nine-cell grid needs eight distinct steps, but the cap is ${MAX_STAGGER_STEPS}`,
+    MAX_STAGGER_STEPS >= LONGEST_GRID - 1,
+    `a twelve-cell grid needs eleven distinct steps, but the cap is ${MAX_STAGGER_STEPS}`,
   );
 
   for (let index = 1; index < delays.length; index += 1) {
@@ -276,8 +284,8 @@ test("the longest list in the application gives every item its own beat", () => 
   }
 
   assert.ok(
-    delays[delays.length - 1] + DURATION.reveal <= 1,
-    "and the whole grid should still have settled within a second of entering the viewport",
+    delays[delays.length - 1] + DURATION.reveal <= 1.15,
+    "and the grid should still have settled soon enough that the last cell does not read as stalled",
   );
 });
 
