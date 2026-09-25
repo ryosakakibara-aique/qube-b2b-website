@@ -1596,6 +1596,75 @@ against the client's in-flight edit to `components/layout/pandora-showcase-grid.
 tiles' images, their `alt=""` and the `RevealLink` wrapper. They are unrelated to this round and were
 left alone rather than rewritten, because that change is still in progress.
 
+**Round 25 — the product carousel becomes draggable, and its autoplay is finally gated.** The client
+reported that it could not be swiped by gesture or scroll and did not pause. Reviewing it found that
+gesture and scroll had never been built — only hover and keyboard focus paused it — and that the
+reduced-motion gate had been computed and then lost.
+
+- **What was there.** Four handlers, all `mouseenter`/`mouseleave`/`focusin`/`focusout`, and nothing
+  else: no pointer, touch, wheel or scroll listener anywhere, and `overflow-hidden` on the strip so the
+  browser could not scroll it either. On a touch screen neither hover nor focus fires, so the strip
+  could not be stopped at all — the WCAG 2.2.2 gap the log had carried since Round 4.
+- **The gesture is pointer-based, and the drag does not re-render.** `pointerdown` on the measured
+  element starts it; `pointermove`/`pointerup`/`pointercancel` are then followed on the **window** for
+  as long as a pointer is down. Capturing the pointer on the strip is the obvious alternative and was
+  rejected: capture retargets `pointerup` to the capturing element, and the click that follows goes to
+  the nearest common ancestor of the down and up targets, so a plain tap on a product would stop
+  navigating. The window listeners keep the drag alive when a finger drifts off the strip without
+  touching where a click lands. `touch-action: pan-y` leaves vertical panning (and the page's own
+  scrolling) with the browser and hands horizontal movement to us.
+- **`pointermove` writes the track's transform straight to the node** through a ref: the strip renders
+  `3n` cards, and re-rendering them at frame rate is work a drag does not need. The release hands the
+  same values back to React, which computes them identically, so the two writers cannot disagree.
+- **The handlers are declared above the hooks that hold them.** The two effects that attach the window
+  listeners need the current handlers, and two rules constrain the order: hooks may not sit below the
+  empty-catalogue `return` (the fault Round 4 fixed in this very file), and the linter refuses a hook
+  that refers to a function declared later in the body. So the derivations, `moveTrackTo`, the three
+  pointer functions and the click suppressor all moved above the early return — everything they need
+  (`containerWidth`, `activeExtIndex`, the memoised strip) is already known there.
+- **A drag does not click the card underneath.** The cards are links, so a swipe would otherwise
+  navigate to a product. Movement past a 10px slop sets a flag that `onClickCapture` consumes —
+  `preventDefault` and `stopPropagation` — and the flag resets at the start of every gesture and on use,
+  so one drag can never eat a later real click. Under the slop nothing is suppressed and the link
+  behaves normally.
+- **The snap measures centres rather than assuming a pitch.** Card widths step through three tiers
+  (236 / 212.4 / 188.8), so the gap between neighbours is 240.2px on one side of the active card and
+  228.4px on the other; a pitch-based snap drifts. The release converts the pixel offset into a strip
+  coordinate and asks which card's centre is nearest. That arithmetic moved into
+  `components/products/carousel-geometry.ts` — away from the JSX, which Node's test runner cannot
+  import — so it is tested for real. A backward drag is now possible for the first time, so the rebase
+  handles both directions: the old code only folded the trailing copy back, and dragging into the
+  leading copy would have left the active card with nothing to its left.
+- **A pointer held down is the pause.** That is the only one a touch screen has, since there is no
+  hover and no keyboard focus on a phone. Hover and focus keep working as before for mouse and
+  keyboard, and the strip resumes with a fresh full cycle when the pointer lifts.
+- **The reduced-motion gate was dead code, and is now load-bearing.** `motionAllowed` was declared, set
+  from `prefers-reduced-motion`, and listed as an effect dependency — and never read, so a visitor who
+  had asked for reduced motion still got a strip that slid and advanced every two seconds, which is what
+  the log claimed it did not. It now gates the interval, and also the slide and the card resize: the
+  strip still follows a drag under reduced motion, because that movement is the visitor's, but it is
+  not animated for them.
+- **Autoplay also stops when the strip cannot be seen** — an `IntersectionObserver` on the element and
+  a `visibilitychange` listener on the document. Previously the timer ran regardless, so it burned
+  through the catalogue off screen and in background tabs and handed the visitor a position they had
+  not chosen. Both are the same defect class as the reduced-motion one: motion the visitor did not ask
+  for and cannot see.
+- **Still not fixed, and still a design decision:** there is no visible pause control, so a screen
+  reader user has no discoverable way to stop the strip, and the drag is undiscoverable to anyone not
+  already dragging. The frames define no carousel controls.
+
+**Verified**: 222 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0, with
+seventeen new assertions: the snap maths exercised for real at 5%, 20%, 45%, 55%, one pitch, half a
+gap and three times the gap, the strip's bounds under a thrown gesture, the tier pitch written out
+independently of `centerOfIndex` (the other snap tests derive their drag from the function they check,
+so a broken `centerOfIndex` would cancel itself out), the pointer wiring and `touch-action`, the
+window-followed gesture and the absence of pointer capture, the click suppression, the
+transform-written-not-state-write in the move handler, the five-way timer guard, the two-directional
+rebase, and the reduced-motion split between the slide and the drag. Four breakages were injected and
+each failed the test written for it: dropping the reduced-motion gate, removing the click suppression,
+reintroducing `setPointerCapture`, and flattening the tier widths. In the built markup the strip
+renders `style="height:506px;touch-action:pan-y"`.
+
 ---
 
 ## Appendix A — Verification command cookbook
