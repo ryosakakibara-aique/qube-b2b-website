@@ -143,3 +143,20 @@ export function toPlainText(source: string): string {
     .join("\n\n")
     .trim();
 }
+
+/**
+ * The text without its formatting markers, collapsed onto one line — for a card, where the stored
+ * markdown would otherwise be printed verbatim.
+ *
+ * Cards read `product.description` straight from the record. That field holds the CMS's markdown
+ * subset, so a bolded opening sentence reached the catalogue as `**Automate parcel receiving.**`,
+ * markers and all, while the same field was already being reduced for the page's metadata. This
+ * closes that gap for every surface that shows the description as a single line of prose.
+ *
+ * Newlines become spaces because a preview is one paragraph: a list's items would otherwise run
+ * together ("Parcel Management\nProperty Tech") or break the card's line clamping. `toPlainText`
+ * stays as it is — metadata wants the paragraph structure preserved.
+ */
+export function toSingleLineText(source: string): string {
+  return toPlainText(source).replace(/\s*\n+\s*/g, " ").trim();
+}

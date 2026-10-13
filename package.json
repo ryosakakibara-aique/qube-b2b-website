@@ -11,7 +11,8 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "node --import ./tests/register-alias.mjs --test"
+    "test": "node --import ./tests/register-alias.mjs --test",
+    "audit:seo": "node scripts/audit-seo.mjs"
   },
   "dependencies": {
     "@anthropic-ai/claude-code": "^2.1.268",

@@ -138,6 +138,7 @@ Things worth knowing about this deployment:
 | `npm run lint` | ESLint |
 | `npm run typecheck` | `tsc --noEmit` |
 | `npm test` | Unit tests (Node's built-in runner — no test framework dependency) |
+| `npm run audit:seo` | Audits the SEO/crawl surface of a running site (see below) |
 
 `npm test` covers the logic that the CMS depends on without needing a database: the authorization
 policy (`lib/auth/roles.ts`), form validation and limits (`lib/products/validation.ts`), row mapping
@@ -146,6 +147,34 @@ client), the honest-failure semantics of public reads (`lib/products/queries.ts`
 file-signature checks (`lib/media/storage.ts`), contact enquiry validation (`lib/leads/actions.ts`)
 and canonical-origin resolution (`lib/site.ts`). Tests are TypeScript files run directly by Node,
 with a small resolver hook (`tests/register-alias.mjs`) so the `@/` alias resolves.
+
+### The SEO audit
+
+`npm run audit:seo` is read-only. It fetches the public routes plus `robots.txt` and `sitemap.xml`
+and checks the surface that search engines and answer engines actually read: one title, one meta
+description, one absolute canonical, Open Graph tags with a reachable `og:image`, one `<h1>` with no
+skipped heading levels, `alt` on every image, parseable JSON-LD carrying no fabricated commercial
+facts, a real `404` for a missing page, and `noindex` on the private route. It exits non-zero if any
+check fails, so it can gate a deploy.
+
+```bash
+npm run dev                                        # then, in another shell:
+npm run audit:seo                                  # against http://localhost:3000
+
+SEO_AUDIT_BASE_URL=https://business.qubesmartlockers.com npm run audit:seo   # the live site
+SEO_AUDIT_STRICT_404=1 npm run audit:seo           # also fail on the soft 404 (see docs/SEO-GEO.md)
+```
+
+Two variables matter when the site is served on a host other than the one it canonicalises to, which
+is normal locally: `NEXT_PUBLIC_SITE_URL` is baked in at build time, so a build made without it
+canonicalises everything to `localhost:3000`. Set `SEO_AUDIT_ORIGIN` to that origin and
+`SEO_AUDIT_BASE_URL` to wherever the server is listening, and the difference is no longer reported as
+a mismatch.
+
+Known findings at the time of writing, both recorded in
+[docs/SEO-GEO.md](docs/SEO-GEO.md) §5.1: no `og:image` exists on `/`, `/products` or any product
+without a hero image (a parked decision), and a missing product answers `200` with a `noindex`
+not-found page rather than a `404`.
 
 ## Routes
 

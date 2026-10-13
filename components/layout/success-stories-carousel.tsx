@@ -84,21 +84,42 @@ const storyCards: StoryCard[] = [
   },
 ];
 
-function StoryCardItem({ card }: { card: StoryCard }) {
-  return (
-    <Link
-      href={card.href}
-      className={`group flex h-[450px] w-[270px] shrink-0 flex-col items-center justify-between overflow-hidden rounded-[30px] border-y-2 transition-transform duration-300 ease-out hover:border-slate-50 border-[#27272a] bg-[#18181b] hover:bg-gradient-to-b from-[#00c290]/50 via-[49.519%] via-[#0fb8aa]/50 to-[#1fadc5]/50`}
-    >
-      <div className="flex flex-1 items-center justify-center p-4">
-        <Image
-          src={card.logo.src}
-          alt={card.logo.alt}
-          width={card.logo.width}
-          height={card.logo.height}
-          className={"brightness-0 invert"}
-        />
+function StoryCardItem({ card, duplicate = false }: { card: StoryCard; duplicate?: boolean }) {
+  const className = `group flex h-[450px] w-[270px] shrink-0 flex-col items-center justify-between overflow-hidden rounded-[30px] border-y-2 transition-transform duration-300 ease-out hover:border-slate-50 border-[#27272a] bg-[#18181b] hover:bg-gradient-to-b from-[#00c290]/50 via-[49.519%] via-[#0fb8aa]/50 to-[#1fadc5]/50`;
+
+  const logo = (
+    <div className="flex flex-1 items-center justify-center p-4">
+      <Image
+        src={card.logo.src}
+        // The second copy exists only to close the loop, so it is decorative: an empty alt keeps it
+        // out of the accessibility tree and out of image results, while the visible copy keeps the
+        // real name. Without this the same logo was announced twice on every pass.
+        alt={duplicate ? "" : card.logo.alt}
+        width={card.logo.width}
+        height={card.logo.height}
+        className={"brightness-0 invert"}
+      />
+    </div>
+  );
+
+  /*
+    The loop needs two passes of the sequence to be seamless, and the second pass used to be a second
+    set of real links: sixteen anchors for eight cards, every one of them pointing at `#`, each
+    repeating the same logo alt text. `ProductCarousel` already treats its filler copies this way —
+    the visual loop is kept, and only one copy is authoritative — so this follows that rule rather
+    than inventing a second one. The duplicate stays in the visual flow but leaves the document tree.
+  */
+  if (duplicate) {
+    return (
+      <div className={className} aria-hidden="true">
+        {logo}
       </div>
+    );
+  }
+
+  return (
+    <Link href={card.href} className={className}>
+      {logo}
       {/* User hid this for the meantime. */}
       {/* <div className="flex h-[80px] w-full items-center justify-center py-4">
         <span
@@ -112,13 +133,16 @@ function StoryCardItem({ card }: { card: StoryCard }) {
 }
 
 export function SuccessStoriesCarousel() {
-  // duplicate the sequence for a seamless RTL loop, same pattern as the clients marquee
-  const sequence = [...storyCards, ...storyCards];
+  // Duplicate the sequence for a seamless RTL loop, same pattern as the clients marquee. The second
+  // pass is rendered as decorative copies, not as a second set of links.
   return (
     <div className="w-full overflow-hidden rounded-[30px]">
       <div className="flex w-max gap-6 animate-marquee-rtl hover:[animation-play-state:paused] focus-within:[animation-play-state:paused]">
-        {sequence.map((card, index) => (
-          <StoryCardItem key={`${card.id}-${index}`} card={card} />
+        {storyCards.map((card) => (
+          <StoryCardItem key={card.id} card={card} />
+        ))}
+        {storyCards.map((card) => (
+          <StoryCardItem key={`${card.id}-loop`} card={card} duplicate />
         ))}
       </div>
     </div>

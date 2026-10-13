@@ -9,28 +9,52 @@ import { SuccessStoriesCarousel } from "@/components/layout/success-stories-caro
 import { ContactSection } from "@/components/marketing/contact-section";
 import { HeroReveal, Reveal } from "@/components/motion/reveal";
 import { Notice } from "@/components/ui/notice";
+import { JsonLd } from "@/components/seo/json-ld";
+import { graph, itemListNode, webPageNode } from "@/lib/seo/schema";
+import { getSiteUrl } from "@/lib/site";
 
 export const revalidate = 300;
 
+const PRODUCTS_TITLE = "Products";
+
+const PRODUCTS_DESCRIPTION =
+  "Explore QUBE smart lockers for terminals, offices, events, and residential buildings.";
+
 export const metadata: Metadata = {
-  title: "Products",
-  description:
-    "Explore QUBE smart lockers for terminals, offices, events, and residential buildings.",
+  title: PRODUCTS_TITLE,
+  description: PRODUCTS_DESCRIPTION,
   alternates: { canonical: "/products" },
   openGraph: {
     url: "/products",
-    title: "Products",
-    description:
-      "Explore QUBE smart lockers for terminals, offices, events, and residential buildings.",
+    title: PRODUCTS_TITLE,
+    description: PRODUCTS_DESCRIPTION,
   },
 };
 
 export default async function ProductsPage() {
   const result = await getPublishedProducts();
   const products = result.ok ? result.data : [];
+  const siteUrl = getSiteUrl();
 
   return (
     <main className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--heading)]">
+      {/*
+        The catalogue describes itself.
+
+        `ItemList` is built from the same array the carousel renders, so the list can never name a
+        product the page does not show — and it is only emitted when the read succeeded, so a failed
+        catalogue produces no list rather than an empty one that would read as "no products".
+        `Organization` and `WebSite` are defined once, on `/`, and referenced by `@id` from here.
+      */}
+      {result.ok ? (
+        <JsonLd
+          data={graph([
+            webPageNode(siteUrl, "/products", PRODUCTS_TITLE, PRODUCTS_DESCRIPTION),
+            itemListNode(siteUrl, products),
+          ])}
+        />
+      ) : null}
+
       <SiteNav />
 
       <section className="mx-auto grid min-h-117.5 w-full max-w-260 gap-8 px-6 py-20 lg:grid-cols-2 lg:px-0 lg:py-37.5">

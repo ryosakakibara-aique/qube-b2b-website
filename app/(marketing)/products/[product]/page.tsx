@@ -9,6 +9,7 @@ import { ContactSection } from "@/components/marketing/contact-section";
 import { HeroReveal, Reveal } from "@/components/motion/reveal";
 import { ProductTags } from "@/components/products/product-tags";
 import { JsonLd } from "@/components/seo/json-ld";
+import { breadcrumbNode, graph, productNode, webPageNode } from "@/lib/seo/schema";
 import { Button } from "@/components/ui/Button";
 import { Notice } from "@/components/ui/notice";
 import { RichText } from "@/components/ui/rich-text";
@@ -17,7 +18,7 @@ import {
   getPublishedProductSlugs,
   getPublishedProducts,
 } from "@/lib/products/queries";
-import { toPlainText } from "@/lib/products/richtext";
+import { toPlainText, toSingleLineText } from "@/lib/products/richtext";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
 import type { Product } from "@/lib/products/types";
 
@@ -63,8 +64,26 @@ export async function generateMetadata({
   const { product } = await params;
   const result = await getPublishedProductBySlug(product);
 
-  if (!result.ok) return { title: "Product" };
-  if (!result.data) return { title: "Product not found" };
+  /*
+    A missing product and an unreachable catalogue both render a page that must never be indexed —
+    the first is a 404, and the second is a transient failure that would otherwise be crawled as a
+   `200 OK` describing nothing. `follow` stays on so the route's own links are still usable.
+  */
+  if (!result.ok) {
+    return { title: "Product unavailable", robots: { index: false, follow: true } };
+  }
+  if (!result.data) {
+    /*
+      `index: false` is doing real work here, not decoration.
+
+      This route is statically prerendered with ISR, and on this version of Next a miss answered
+      `200 OK` with the not-found view inside it — a soft 404, verified against a clean production
+      build. Raising `notFound()` from metadata as well does not change the status, so the response
+      code cannot be relied on to keep the page out of an index. `noindex` is what does that, and it
+      is why the title below is kept honest rather than left as a bare "Product".
+    */
+    return { title: "Product not found", robots: { index: false, follow: true } };
+  }
 
   const data = result.data;
   const image = toOgImage(data.imageUrl);
@@ -120,48 +139,32 @@ export default async function ProductPage({
     : [];
 
   const siteUrl = getSiteUrl();
-  const productUrl = `${siteUrl}/products/${productData.slug}`;
   const heroImage = toOgImage(productData.imageUrl);
+  const description = toPlainText(productData.description);
+
+  /*
+    One trail, used twice: the visible breadcrumb below maps over this array, and the structured data
+    is built from the same array. They cannot disagree about the product's name or its place in the
+    hierarchy, which is what made "the breadcrumb matches the visible one" a claim rather than a
+    guarantee.
+  */
+  const breadcrumbItems = [
+    { name: "Home", path: "/" },
+    { name: "Products", path: "/products" },
+    { name: productData.title, path: `/products/${productData.slug}` },
+  ];
 
   return (
     <main className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--heading)]">
       <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Product",
-              name: productData.title,
-              description: toPlainText(productData.description),
-              url: productUrl,
-              ...(heroImage ? { image: heroImage } : {}),
-              brand: { "@type": "Brand", name: "QUBE" },
-            },
-            {
-              "@type": "BreadcrumbList",
-              itemListElement: [
-                {
-                  "@type": "ListItem",
-                  position: 1,
-                  name: "Home",
-                  item: `${siteUrl}/`,
-                },
-                {
-                  "@type": "ListItem",
-                  position: 2,
-                  name: "Products",
-                  item: `${siteUrl}/products`,
-                },
-                {
-                  "@type": "ListItem",
-                  position: 3,
-                  name: productData.title,
-                  item: productUrl,
-                },
-              ],
-            },
-          ],
-        }}
+        data={graph([
+          webPageNode(siteUrl, `/products/${productData.slug}`, productData.title, description),
+          productNode(siteUrl, productData, {
+            description,
+            image: heroImage,
+          }),
+          breadcrumbNode(siteUrl, breadcrumbItems),
+        ])}
       />
 
       <SiteNav />
@@ -170,21 +173,23 @@ export default async function ProductPage({
       <section className="mx-auto w-full max-w-[1040px] px-6 py-4 lg:px-0">
         <nav aria-label="Breadcrumb">
           <ol className="flex flex-wrap items-center gap-2 text-sm text-[var(--text-muted)]">
-            <li>
-              <Link href="/" className="hover:underline">
-                Home
-              </Link>
-            </li>
-            <li aria-hidden="true">/</li>
-            <li>
-              <Link href="/products" className="hover:underline">
-                Products
-              </Link>
-            </li>
-            <li aria-hidden="true">/</li>
-            <li aria-current="page" className="text-[var(--heading)]">
-              {productData.title}
-            </li>
+            {breadcrumbItems.map((crumb, index) => {
+              const isLast = index === breadcrumbItems.length - 1;
+              return (
+                <li key={crumb.path} className="flex items-center gap-2">
+                  {index > 0 ? <span aria-hidden="true">/</span> : null}
+                  {isLast ? (
+                    <span aria-current="page" className="text-[var(--heading)]">
+                      {crumb.name}
+                    </span>
+                  ) : (
+                    <Link href={crumb.path} className="hover:underline">
+                      {crumb.name}
+                    </Link>
+                  )}
+                </li>
+              );
+            })}
           </ol>
         </nav>
 
@@ -357,19 +362,36 @@ export default async function ProductPage({
                   className="motion-lift block rounded-[var(--radius-card-sm)] border border-[var(--border-subtle)] p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
                 >
                   <div className="relative h-32 overflow-hidden rounded-[var(--radius-control)] bg-[var(--surface-muted)]">
-                    {related.imageUrl ? (
+                    {/*
+                      The card image is preferred here because this slot is a square thumbnail, which
+                      is the shape `card_image_url` is collected at (420×420). Using `image_url`
+                      instead — a 2000×800 hero — sent a wide banner into a square box and cropped it
+                      hard with `object-cover`.
+                      There is still **no fallback between the two fields**, per the recorded
+                      decision: a product with only a hero shows its hero, and a product with neither
+                      renders the empty tile exactly as before.
+                    */}
+                    {related.cardImageUrl ? (
+                      <Image
+                        src={related.cardImageUrl}
+                        alt={related.cardImageAlt ?? related.title}
+                        fill
+                        sizes="(min-width: 640px) 320px, 100vw"
+                        className="object-contain"
+                      />
+                    ) : related.imageUrl ? (
                       <Image
                         src={related.imageUrl}
                         alt={related.imageAlt ?? ""}
                         fill
-                        sizes="300px"
+                        sizes="(min-width: 640px) 320px, 100vw"
                         className="object-cover"
                       />
                     ) : null}
                   </div>
                   <h3 className="mt-3 text-sm font-bold">{related.title}</h3>
                   <p className="mt-1 text-xs text-[var(--text-muted)]">
-                    {related.description}
+                    {toSingleLineText(related.description)}
                   </p>
                 </Link>
               </Reveal>

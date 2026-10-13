@@ -1,4 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+/**
+ * A 404 must not be a page anyone tries to rank.
+ *
+ * The response carries a 404 status, which is what matters most, but Next still applies the root
+ * layout's metadata to this view — so without this the error page would arrive describing itself
+ * with the site title and description, exactly like a real page. `follow` stays on so the "Return
+ * home" link is still worth following; only indexing is refused.
+ */
+export const metadata: Metadata = {
+  robots: { index: false, follow: true },
+};
 
 export default function NotFound() {
   return (

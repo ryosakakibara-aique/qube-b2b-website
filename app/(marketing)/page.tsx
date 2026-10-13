@@ -11,12 +11,8 @@ import { SuccessStoriesCarousel } from "@/components/layout/success-stories-caro
 import { ContactSection } from "@/components/marketing/contact-section";
 import { HeroReveal, Reveal } from "@/components/motion/reveal";
 import { JsonLd } from "@/components/seo/json-ld";
-import {
-  absoluteUrl,
-  getSiteUrl,
-  SITE_DESCRIPTION,
-  SITE_NAME,
-} from "@/lib/site";
+import { graph, organizationNode, webPageNode, websiteNode } from "@/lib/seo/schema";
+import { SITE_DESCRIPTION, SITE_NAME, getSiteUrl } from "@/lib/site";
 
 export const revalidate = 300;
 
@@ -98,9 +94,9 @@ const businessFeatures = [
     text: "Give guests convenient storage for luggage, valuables, and belongings before check-in, after check-out, or throughout their stay.",
   },
   {
-    title: "Lifestyle Parks",
-    headline: "Enjoy More, Carry Less.",
-    text: "Walk, jog, shop, and enjoy more when you carry less of your things.",
+    title: "Malls",
+    headline: "Make Shopping More Convenient.",
+    text: "Give shoppers secure storage for bags and personal belongings so they can shop freely without carrying everything.",
   },
 ];
 
@@ -110,27 +106,11 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-[var(--background)] text-[var(--heading)]">
       <JsonLd
-        data={{
-          "@context": "https://schema.org",
-          "@graph": [
-            {
-              "@type": "Organization",
-              "@id": `${siteUrl}/#organization`,
-              name: "QUBE",
-              url: siteUrl,
-              logo: absoluteUrl("/qube-logo.svg"),
-              description: SITE_DESCRIPTION,
-            },
-            {
-              "@type": "WebSite",
-              "@id": `${siteUrl}/#website`,
-              name: SITE_NAME,
-              url: siteUrl,
-              publisher: { "@id": `${siteUrl}/#organization` },
-              inLanguage: "en",
-            },
-          ],
-        }}
+        data={graph([
+          organizationNode(siteUrl),
+          websiteNode(siteUrl),
+          webPageNode(siteUrl, "/", SITE_NAME, SITE_DESCRIPTION),
+        ])}
       />
 
       <SiteNav />
@@ -162,12 +142,14 @@ export default function Home() {
           index={2}
           className="flex items-end justify-start gap-2 pb-1 text-sm lg:justify-end"
         >
-          <span className="font-bold text-[var(--brand-ink)]">PANDORA 3.0</span>
+          <span className="font-bold text-[var(--brand-ink)]">
+            QUBE Product Suite
+          </span>
           <Link
             href="/products"
             className="text-[var(--text-muted)] hover:underline"
           >
-            All solutions that we provide
+            Explore Our Products
           </Link>
           <span aria-hidden="true">&rarr;</span>
         </HeroReveal>

@@ -36,7 +36,13 @@ export function SiteFooter() {
         </div>
         <nav aria-label="Footer" className="grid grid-cols-2 gap-6 text-xs">
           <div>
-            <h2 className="font-semibold">Explore</h2>
+            {/*
+              These are the groups inside one footer navigation, not sections of the page. As `<h2>`
+              they landed in the document outline at the same level as the page's own sections —
+              "Explore" and "Account" read as page structure to a screen reader and to anything that
+              parses the outline, when they are only labels for two lists of links.
+            */}
+            <h3 className="font-semibold">Explore</h3>
             <ul className="mt-3 space-y-2 text-[var(--text-muted)]">
               {exploreLinks.map((link) => (
                 <li key={link.href}>
@@ -48,7 +54,7 @@ export function SiteFooter() {
             </ul>
           </div>
           <div>
-            <h2 className="font-semibold">Account</h2>
+            <h3 className="font-semibold">Account</h3>
             <ul className="mt-3 space-y-2 text-[var(--text-muted)]">
               {accountLinks.map((link) => (
                 <li key={link.href}>

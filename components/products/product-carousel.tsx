@@ -12,6 +12,7 @@ import {
   nearestIndex,
 } from "@/components/products/carousel-geometry";
 import { ProductTags } from "@/components/products/product-tags";
+import { toSingleLineText } from "@/lib/products/richtext";
 import { CARD_TAG_LIMIT } from "@/lib/products/tags";
 import type { Product } from "@/lib/products/types";
 
@@ -406,6 +407,13 @@ export function ProductCarousel({ products }: { products: Product[] }) {
                       src={product.cardImageUrl}
                       alt=""
                       fill
+                      /*
+                        The card's image box is a fixed square that steps down through the carousel's
+                        three tiers, so the browser is told the rendered size rather than being left
+                        to assume the intrinsic one. Without this Next serves a srcset whose largest
+                        candidate is far bigger than the box.
+                      */
+                      sizes={`${size.img}px`}
                       className="object-contain"
                     />
                   ) : null}
@@ -432,7 +440,7 @@ export function ProductCarousel({ products }: { products: Product[] }) {
                       className="mt-1 line-clamp-3 text-[#3f3f46] leading-snug"
                       style={{ fontSize: size.fsSmall }}
                     >
-                      {product.description}
+                      {toSingleLineText(product.description)}
                     </p>
                   </div>
 

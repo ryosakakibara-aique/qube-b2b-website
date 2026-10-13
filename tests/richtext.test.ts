@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseRichText, toPlainText } from "../lib/products/richtext.ts";
+import { parseRichText, toPlainText, toSingleLineText } from "../lib/products/richtext.ts";
 
 /**
  * The rich text subset. This is the only place where styling entered in the CMS becomes markup on
@@ -139,4 +139,48 @@ test("toPlainText strips the markers for metadata", () => {
   assert.equal(toPlainText("- one\n- two"), "one\ntwo");
   assert.equal(toPlainText("first\n\nsecond"), "first\n\nsecond");
   assert.equal(toPlainText("   "), "");
+});
+
+/**
+ * The card preview.
+ *
+ * Cards print the stored markdown verbatim, so a bolded opening sentence reached the catalogue as
+ * `**Automate parcel receiving.**`, markers and all — while the same field was already being reduced
+ * for the page's metadata. These pin the preview path, whose extra requirement is that it never
+ * returns a line break: a preview is one paragraph, and the card clamps it to three lines.
+ */
+test("toSingleLineText strips the markers, like the metadata path", () => {
+  assert.equal(toSingleLineText("**Bold** and *italic*"), "Bold and italic");
+  assert.equal(toSingleLineText("plain prose"), "plain prose");
+});
+
+test("toSingleLineText collapses every break onto one line", () => {
+  assert.equal(toSingleLineText("- one\n- two"), "one two");
+  assert.equal(toSingleLineText("first\n\nsecond"), "first second");
+  assert.equal(toSingleLineText("a\r\nb"), "a b");
+  assert.equal(
+    toSingleLineText("\n\n  spaced   out  \n\n"),
+    "spaced   out",
+    "inner runs of spaces are the author's, and are not rewritten",
+  );
+});
+
+test("a card preview never contains a line break, whatever the record holds", () => {
+  for (const source of [
+    "a\nb",
+    "- a\n- b",
+    "a\n\nb",
+    "**a**\n*b*\n\n- c\r\n- d",
+    "trailing\n",
+  ]) {
+    assert.ok(
+      !/[\r\n]/.test(toSingleLineText(source)),
+      `a preview of ${JSON.stringify(source)} still carries a line break`,
+    );
+  }
+});
+
+test("an empty description produces an empty preview rather than whitespace", () => {
+  assert.equal(toSingleLineText(""), "");
+  assert.equal(toSingleLineText("   \n  "), "");
 });

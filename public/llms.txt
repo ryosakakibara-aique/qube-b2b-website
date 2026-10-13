@@ -1,0 +1,45 @@
+# QUBE Smart Lockers
+
+> QUBE Smart Lockers builds connected smart locker systems for businesses — secure,
+> self-service storage for terminals, campuses, hospitals, factories, offices, malls and events.
+> The company behind the products is QUBE Smart Technology Corp.
+
+This file is a plain-text map of the public site for automated readers. It is a courtesy index, not
+a substitute for the pages themselves, and it contains no content that is not already public.
+
+## Canonical origin
+
+https://business.qubesmartlockers.com
+
+All canonical URLs, Open Graph tags, structured data and sitemap entries on the site use this origin.
+The company's separate marketing site is https://www.qubesmartlockers.com/.
+
+## Company
+
+- Public brand: QUBE Smart Lockers
+- Registered name: QUBE Smart Technology Corp.
+- Also known as: QUBE, QUBE Smart Technology
+- LinkedIn: https://www.linkedin.com/company/qube-smart-technology
+- Facebook: https://www.facebook.com/qubesmartlockers/
+- Company site: https://www.qubesmartlockers.com/
+
+## Public pages
+
+- https://business.qubesmartlockers.com/ — overview, the industries QUBE builds for, and an enquiry form
+- https://business.qubesmartlockers.com/products — the catalogue, one entry per product
+- https://business.qubesmartlockers.com/products/{slug} — one page per product
+- https://business.qubesmartlockers.com/sitemap.xml — every public URL, with the date each last changed
+
+## Not public
+
+- `/cms/*` is the authenticated content management area. It is excluded here and in `robots.txt`, it
+  sets `noindex`, and it holds no public content.
+
+## Notes on this site's content
+
+- Product facts are stored in a content management system and rendered server-side, so a product page
+  always describes the product as it is currently published.
+- Every product page states what the product is, who it is for, and where it is installed, in prose
+  on the page itself. No summary on this site is machine-only.
+- The site publishes no prices, ratings or reviews, because QUBE does not publish them anywhere else
+  either. Nothing in the structured data claims otherwise.
