@@ -18,6 +18,7 @@ import {
   getPublishedProductSlugs,
   getPublishedProducts,
 } from "@/lib/products/queries";
+import { getHomepageContentOrDefault } from "@/lib/content/queries";
 import { toPlainText, toSingleLineText } from "@/lib/products/richtext";
 import { absoluteUrl, getSiteUrl } from "@/lib/site";
 import type { Product } from "@/lib/products/types";
@@ -111,9 +112,12 @@ export default async function ProductPage({
 }) {
   const { product } = await params;
 
-  const [result, relatedResult] = await Promise.all([
+  const [result, relatedResult, homepageContent] = await Promise.all([
     getPublishedProductBySlug(product),
     getPublishedProducts(),
+    // The success-story carousel is shared site chrome, so every marketing route reads the same
+    // stories record rather than keeping its own copy.
+    getHomepageContentOrDefault(),
   ]);
 
   if (!result.ok) {
@@ -343,7 +347,7 @@ export default async function ProductPage({
           <Button variant="dark">Read stories</Button>
         </div>
         <div className="mx-auto mt-6 max-w-[1440px] px-6 lg:px-0">
-          <SuccessStoriesCarousel />
+          <SuccessStoriesCarousel stories={homepageContent.stories} />
         </div>
       </Reveal>
 

@@ -7,10 +7,20 @@ const primaryNavItems = [
   { href: "/products", label: "Products" },
 ];
 
-const accountItem = { href: "/cms/login", label: "Sign in" };
-
 const ctaItem = { href: "/#contact", label: "Talk to an Expert" };
 
+/**
+ * The public navigation.
+ *
+ * **There is deliberately no CMS link here** — not in the wide row and not in the collapsed panel.
+ * The client asked for the admin sign-in to be reachable only by typing its URL, which also closes
+ * the SEO plan's open item G15/O3: `/cms/login` is already `noindex` and disallowed in `robots.txt`,
+ * so a public link only spent crawl budget and internal link equity on a page customers cannot use.
+ *
+ * That is cosmetic, not protective. The gate is `profiles.approved` plus `current_user_role()` and
+ * RLS in the database. Staff reach the CMS from a bookmark, and `tests/cms-entry.test.ts` fails if a
+ * link finds its way back into the public chrome.
+ */
 export function SiteNav() {
   return (
     <header className="relative border-b border-[var(--border-subtle)] bg-[var(--background)]">
@@ -34,12 +44,6 @@ export function SiteNav() {
             </Link>
           ))}
           <Link
-            href={accountItem.href}
-            className="text-sm font-medium text-[var(--foreground)] transition-opacity hover:opacity-70"
-          >
-            {accountItem.label}
-          </Link>
-          <Link
             href={ctaItem.href}
             className="cta-gradient rounded-[var(--radius-control)] px-5 py-2 text-sm font-bold text-[var(--brand-foreground)] transition-opacity hover:opacity-90"
           >
@@ -49,11 +53,7 @@ export function SiteNav() {
 
         {/* Narrow viewports collapse instead of overflowing. */}
         <div className="ml-auto lg:hidden">
-          <MobileNav
-            items={primaryNavItems}
-            accountItem={accountItem}
-            cta={ctaItem}
-          />
+          <MobileNav items={primaryNavItems} cta={ctaItem} />
         </div>
       </div>
     </header>

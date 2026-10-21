@@ -71,6 +71,54 @@ export const CARD_IMAGE_NOTE = `Square, ${CARD_IMAGE_SIZE.width} × ${CARD_IMAGE
 export const SECTION_IMAGE_SIZE = { width: 1000, height: 500 } as const;
 export const SECTION_IMAGE_NOTE = `Wide, ${SECTION_IMAGE_SIZE.width} × ${SECTION_IMAGE_SIZE.height} px or larger`;
 
+/* ---------------------------------------------------------------------------
+ * Homepage imagery
+ *
+ * The client's rule for the landing page's images — logos, the nine showcase tiles and the success
+ * story cards — is narrower than the product rule: **PNG only, up to 2 MB**, and the author resizes
+ * the file before uploading. There is no server-side processing here, exactly as asked, which is why
+ * each field carries a pixel-size hint instead.
+ *
+ * The cap and the type list are enforced a second time by the bucket itself
+ * (`supabase/migrations/006_site_images_bucket.sql` sets `file_size_limit` and
+ * `allowed_mime_types`), so an object that breaks the rule cannot be stored even if this module is
+ * bypassed.
+ * ------------------------------------------------------------------------- */
+
+export const DEFAULT_SITE_IMAGE_BUCKET = "site-images";
+
+export function getSiteImageBucket(): string {
+  return (
+    process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET?.trim() ||
+    DEFAULT_SITE_IMAGE_BUCKET
+  );
+}
+
+export const SITE_IMAGE_BYTES = 2 * 1024 * 1024;
+
+export const SITE_IMAGE_SIZE_LABEL = "2 MB";
+
+export const SITE_IMAGE_TYPES = ["image/png"] as const;
+
+export type SiteImageType = (typeof SITE_IMAGE_TYPES)[number];
+
+export function isAllowedSiteImageType(value: string): value is SiteImageType {
+  return (SITE_IMAGE_TYPES as readonly string[]).includes(value);
+}
+
+/**
+ * What to upload for a logo.
+ *
+ * Logos are displayed between about 32 and 40 pixels tall, so a source three times that stays sharp
+ * on a high-density screen. Transparency matters: the story cards invert the logo to a white
+ * silhouette, and a PNG with a white plate would invert into a black rectangle.
+ */
+export const LOGO_IMAGE_NOTE =
+  "Transparent PNG, about 3× the height it displays at (≈120 px tall)";
+
+/** The story card is 270 × 450, so the photograph is portrait. */
+export const STORY_IMAGE_NOTE = "Portrait, about 540 × 900 px";
+
 export const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"] as const;
 
 export type AllowedImageType = (typeof ALLOWED_IMAGE_TYPES)[number];

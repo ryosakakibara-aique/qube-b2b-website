@@ -3,19 +3,19 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import { DURATION, LOGO_STAGGER, logoDelay } from "../components/motion/tokens.ts";
+import { HOMEPAGE_DEFAULTS } from "../lib/content/defaults.ts";
 
 /**
  * The client-logo grid.
  *
- * The same eight logos were declared twice — once in the hero strip, once over the client marquee —
- * as two byte-identical lists, so adding a client meant editing two files and keeping them in step by
- * hand. They now come from one module that both grids map.
+ * The logos are homepage content now (`/cms/home`, section 4), so this file checks three things that
+ * used to be one: the list is declared exactly once (in the defaults, which the page renders until the
+ * record is saved), both grids are consumers of the shared component rather than owners of a list, and
+ * the two contexts still differ in the ways the design requires.
  *
- * These checks are static because the component renders JSX, which Node's test runner cannot import.
- * The extraction's real guarantee is not asserted here: the rendered markup of both grids was
- * compared byte for byte against the previous build, because the two contexts differ in their gaps,
- * their image class and whether each logo is wrapped in a centring div, and normalising any of those
- * would have been an unrequested visual change.
+ * That last part is the reason these checks are static. The hero strip and the marquee differ in their
+ * gaps, their image class and whether each logo sits in a centring wrapper; normalising any of them
+ * would be an unrequested visual change, and this workspace has no browser in which to judge it.
  */
 
 const projectRoot = process.cwd();
@@ -34,12 +34,13 @@ function collectSourceFiles(directory: string): string[] {
   return found;
 }
 
-const sourceFiles = ["app", "components"]
+const sourceFiles = ["app", "components", "lib"]
   .flatMap((directory) => collectSourceFiles(path.join(projectRoot, directory)))
   .map((file) => path.relative(projectRoot, file).replace(/\\/g, "/"))
   .sort();
 
 const GRID = "components/layout/client-logo-grid.tsx";
+const DEFAULTS = "lib/content/defaults.ts";
 
 test("the client logo list is declared in exactly one place", () => {
   const declaring = sourceFiles.filter((file) =>
@@ -48,10 +49,10 @@ test("the client logo list is declared in exactly one place", () => {
 
   assert.deepEqual(
     declaring,
-    [GRID, "components/layout/success-stories-carousel.tsx"],
-    "the eight client logos belong to one module. The success-story carousel draws on the same " +
-      "logo files but is a separate dataset — stories with their own destinations — and keeps its " +
-      "own records on purpose.",
+    [DEFAULTS],
+    "the eight logos belong to the homepage content, not to a component. The success-story carousel " +
+      "draws on the same brand names but keeps its own records — stories with their own order and " +
+      "their own uploads — so the two lists are separate on purpose.",
   );
 });
 
@@ -66,35 +67,36 @@ test("both grids render the shared component instead of their own list", () => {
 
     assert.match(
       source,
-      new RegExp(`<ClientLogoGrid variant="${variant}" />`),
-      `${file} should render the shared grid`,
+      new RegExp(`<ClientLogoGrid\\s+variant="${variant}"\\s+logos=\\{logos\\}`),
+      `${file} should render the shared grid with the list it was given`,
     );
     assert.ok(
       !source.includes("jollibee-logo.svg"),
       `${file} still declares its own logo list`,
     );
     assert.ok(
-      !source.includes("clientLogos"),
-      `${file} still references a local logo array`,
+      !source.includes("CLIENT_LOGOS"),
+      `${file} still references the retired module-level array`,
     );
   }
+
+  assert.match(
+    read(GRID),
+    /logos: ClientLogo\[\]/,
+    "the grid takes the list as a prop: it is content now, not a module constant",
+  );
 });
 
-test("every client logo is described for assistive technology", () => {
-  const source = read(GRID);
-  const entries = [
-    ...source.matchAll(
-      /src:\s*"([^"]+)",\s*alt:\s*"([^"]+)",\s*width:\s*(\d+),\s*height:\s*(\d+)/g,
-    ),
-  ];
+test("every client logo is described and sized", () => {
+  const logos = HOMEPAGE_DEFAULTS.logos;
 
-  assert.equal(entries.length, 8, "expected all eight client logos");
+  assert.equal(logos.length, 8, "expected all eight client logos");
 
-  for (const [, src, alt, width, height] of entries) {
-    assert.ok(alt.trim().length > 0, `${src} has no alt text`);
+  for (const logo of logos) {
+    assert.ok(logo.name.trim().length > 0, `${logo.imageUrl} has no alt text`);
     assert.ok(
-      Number(width) > 0 && Number(height) > 0,
-      `${src} needs real dimensions so next/image can reserve space and the strip cannot shift`,
+      logo.width > 0 && logo.height > 0,
+      `${logo.imageUrl} needs real dimensions so next/image can reserve space and the strip cannot shift`,
     );
   }
 });
@@ -104,7 +106,7 @@ test("the logos reveal one after another, and the sequence is bounded", () => {
 
   assert.match(
     source,
-    /CLIENT_LOGOS\.map\(\(logo, index\)/,
+    /logos\.map\(\(logo, index\)/,
     "the logos must be mapped with their index, since that index is what sequences them",
   );
   assert.match(source, /<RevealImage/, "each mapped logo should be the animated image");

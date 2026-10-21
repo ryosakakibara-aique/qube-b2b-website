@@ -101,6 +101,8 @@ re-export before typography and the mobile frames can be verified.
 | **D8** | **Resolved by client decision — capture enquiries.** `public.contact_submissions` with anonymous insert and admin-only read, submitted through a validated server action with a honeypot. No CRM or e-mail integration. Live-verified: an anonymous insert returns 201, and an anonymous read returns zero rows. |
 | **D9** | **Resolved by client decision — Motion on the marketing routes only, reveals and micro-interactions only, no new visual design.** `motion` 13 through `LazyMotion` + `m` + `strict`, with a single provider in a new `app/(marketing)/layout.tsx` so `/cms/*` pays nothing; numbers live in `components/motion/tokens.ts` and are mirrored into `globals.css` for the two CSS micro-interactions. The above-the-fold elements fade in as a cascade, heading first, as the client then asked for (see the Round 14 follow-up): this **knowingly gives up the pure-LCP position recorded earlier**, because the heading is the largest contentful paint element on `/` and `/products` and text at `opacity: 0` is not a valid LCP candidate, so the metric now lands when its fade ends rather than at first paint. The heading therefore takes the shortest duration in the system (260ms) and no delay at all, which is structural: `heroHeading()` accepts no index, so it cannot be staggered even by mistake. Route changes fade in from the second navigation onward and never on a hard load; the mobile navigation panel is the one overlay that animates its exit; hover and press feedback stay in CSS so no runtime is involved. Ambient lighting, particles, rotating decoration, pointer tracking and parallax were **excluded** — they are new visual design, which §24 of the brief and CLAUDE.md's "do not redesign the Figma UI" both forbid. Measured cost: the motion runtime is **32.4 KB gzipped** of vendor JavaScript on every marketing page (three chunks), against the ~20 KB the library's own documentation predicts, because Turbopack tree-shakes less aggressively than the Rollup figures it publishes. That is the price of D9. `MOTION_ENABLED` switches every animation off at runtime, but it cannot remove the bytes — a runtime constant cannot remove an import, so the chunks still load; reclaiming them means reverting the dependency. |
 
+| **D10** | **Resolved by client decision — the homepage is CMS content, scoped to their list.** A client review of `/` produced eight controls: hero text and its secondary link, the primary button, the hero video link plus the frame title that names it, the client logos, the twelve-cell business grid (fixed at 12), the nine PANDORA tiles (fixed at 9), the "Our Clients" heading and the success-story cards. Everything else on `/` stays code — navigation and footer, the enquiry section and its four highlights (shared by three routes), the parallax band, the "Ask how we can help" band, the story card destinations, both section buttons, the page metadata and the showcase geometry — and items outside the list were left alone rather than widened. Storage is one singleton row, `public.homepage`, whose four repeated groups are typed `jsonb` columns rather than child tables or a block builder. **No row is seeded**: `lib/content/defaults.ts` holds the copy the page shipped with, `/` renders it until the first save, and it is also the fallback when the read fails — the one place in this project where a read substitutes authored content for a failure, accepted because an empty front page is worse than stale copy. Saving is live (upsert on the singleton id, no draft, no publish toggle) and revalidates `/`, `/products` and `/cms/home`. |
+
 ### Deliberate deviations from the documentation
 
 1. **Content sections are data-driven, not fixed at three.** The Figma create screen shows three
@@ -123,6 +125,14 @@ re-export before typography and the mobile frames can be verified.
    removed (`SECTION_IMAGE_SLOTS`). No schema or write-path change was needed: the images table is
    keyed by section and sort order and `save_product_content()` walks however many it is given. The
    detail page already lays two images out side by side.
+6. **The success-story card gained a photograph and a wash** — a client-requested addition, not a
+   reading of any frame (D10). At rest a black overlay at 80% sits over the image; on hover it
+   cross-fades to the brand gradient at 30%. The card's own 50% hover gradient was replaced rather
+   than layered over: two washes over one photograph darken each other and the 30% figure stops
+   meaning anything. The gradient stops are the CTA's, written inline because the design defines no
+   token for a wash; the two opacities are the client's numbers. No story photograph exists yet, so
+   every card renders the plain black panel until one is uploaded, and the hover state can only be
+   judged on a device.
 
 ---
 
@@ -1664,6 +1674,38 @@ rebase, and the reduced-motion split between the slide and the drag. Four breaka
 each failed the test written for it: dropping the reduced-motion gate, removing the click suppression,
 reintroducing `setPointerCapture`, and flattening the tier widths. In the built markup the strip
 renders `style="height:506px;touch-action:pan-y"`.
+
+**Round 26 — the homepage is CMS content, and the CMS stops advertising itself.**
+
+- **`/cms/home` edits one row** (`public.homepage`, migration `005`) whose four repeated groups are
+  typed `jsonb` columns — not a block builder. The eight controls are the client's own list: hero text
+  and its secondary link, the primary CTA, the hero video link plus the frame title that names it, the
+  client logos, the twelve-cell business grid (**fixed** at 12), the nine PANDORA tiles (**fixed** at
+  9), the "Our Clients" heading and the success-story cards. Everything else on `/` stays code
+  (D10).
+- **No row is seeded.** `lib/content/defaults.ts` holds the shipped copy and is what `/` renders before
+  the first save and again if the read fails — the one place in this project where a read substitutes
+  authored content, because an empty front page is worse than stale copy. The save is an upsert on the
+  singleton id with no draft and no publish toggle, and it revalidates `/`, `/products`, the product
+  detail pages and `/cms/home`.
+- **Homepage imagery has its own bucket** (`site-images`, migration `006`): PNG only, 2 MB, enforced by
+  `file_size_limit` and `allowed_mime_types` as well as by the upload action. The eight client logos
+  are still SVG files in `public/`, so they need PNG exports before they can be uploaded; until then
+  their repository paths keep rendering.
+- **The success-story card gained a photograph and a wash** — 80% black at rest, the brand gradient at
+  30% on hover — replacing the card's own 50% hover gradient rather than layering over it. Recorded as
+  a deliberate deviation, since no frame defines an image in that card.
+- **The CMS sign-in left the public chrome** — the navbar row, the collapsed panel and the footer —
+  which closes the SEO plan's G15/O3. Staff reach `/cms/login` by URL. This is cosmetic, not
+  protective: the gate is `profiles.approved` plus `current_user_role()` and RLS. The footer's
+  two-column nav collapsed into one list, with the sitemap moved into it. `tests/cms-entry.test.ts`
+  fails if a link finds its way back.
+- **Verified**: 298 tests, `npx tsc --noEmit`, `npm run lint` and `npm run build` all exit 0. The
+  prerendered `/` carries the twelve cells, nine tiles, eight logos twice and sixteen story cards;
+  smoke test returns 200 for `/`, `/products` and a product page, with `/cms/home` redirecting to
+  sign-in. Both migrations must be applied before the screen is used — until then it reports the
+  missing table while `/` serves the built-in copy, which is the designed degradation rather than a
+  failure.
 
 ---
 

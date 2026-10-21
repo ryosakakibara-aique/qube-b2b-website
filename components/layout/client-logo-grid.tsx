@@ -1,44 +1,23 @@
 import { RevealImage } from "@/components/motion/reveal-image";
+import type { ClientLogo } from "@/lib/content/types";
 
 /**
- * The eight client logos, in one place, mapped by both grids that show them.
+ * The client logo grid, drawn twice from one list.
  *
- * They used to be declared twice — once in the hero strip and once over the client marquee — as two
- * byte-identical lists, which meant a ninth client needed editing in two files. The success-story
- * carousel also draws on the same eight logo files, but it is deliberately **not** a consumer of this
- * module: those are stories with their own destinations, not the client list. See
- * `success-stories-carousel.tsx`.
- */
-export const CLIENT_LOGOS = [
-  { src: "/jollibee-logo.svg", alt: "Jollibee", width: 103, height: 24 },
-  { src: "/kmc-logo.svg", alt: "KMC", width: 93, height: 22 },
-  {
-    src: "/ism-logo.svg",
-    alt: "International School Manila",
-    width: 162,
-    height: 22,
-  },
-  { src: "/pitx-logo.svg", alt: "PITX", width: 72, height: 20 },
-  { src: "/lucima-logo.svg", alt: "Lucima", width: 70, height: 37 },
-  { src: "/rhk-logo.svg", alt: "RHK", width: 44, height: 40 },
-  { src: "/anjo-world-logo.svg", alt: "Anjo World", width: 94, height: 29 },
-  {
-    src: "/enchanted-kingdom-logo.svg",
-    alt: "Enchanted Kingdom",
-    width: 69,
-    height: 30,
-  },
-];
-
-/**
+ * The logos are homepage content now (`/cms/home`, section 4) and the hero strip and the "Our Clients"
+ * marquee both render this component with the same array — they are one list shown in two places, not
+ * two lists that happen to match. The success-story carousel draws on the same brand names but is
+ * deliberately **not** a consumer of this module: those are stories with their own order and their own
+ * logo uploads. See `success-stories-carousel.tsx`.
+ *
  * The two contexts differ in three ways, and all three are reproduced here rather than normalised:
  * the gaps, the image class, and how each logo is centred in its cell.
  *
- * Normalising them would have been a visual change to one of the two pages, and this workspace has
- * no browser in which to judge it. Reconciling them is a design decision, not a refactor.
+ * Normalising them would be a visual change to one of the two places, and this workspace has no
+ * browser in which to judge it. Reconciling them is a design decision, not a refactor.
  *
- * - `hero` — the strip under the hero video placeholder. Each logo sits inside a centring wrapper,
- *   which is a flex box and therefore stretches to the cell its logo is centred inside.
+ * - `hero` — the strip under the hero video. Each logo sits inside a centring wrapper, which is a flex
+ *   box and therefore stretches to the cell its logo is centred inside.
  * - `marquee` — the overlay grid on the "Our Clients" panel. The logos *are* the grid items, so the
  *   centring has to be the grid's own: `justify-items-center`. Without it they are not centred at
  *   all — a grid item that is a replaced element with an intrinsic size and aspect ratio aligns to
@@ -71,18 +50,20 @@ export type ClientLogoGridVariant = keyof typeof VARIANTS;
  */
 export function ClientLogoGrid({
   variant,
+  logos,
 }: {
   variant: ClientLogoGridVariant;
+  logos: ClientLogo[];
 }) {
   const { grid, image, centreEachLogo } = VARIANTS[variant];
 
   return (
     <div className={grid}>
-      {CLIENT_LOGOS.map((logo, index) => (
+      {logos.map((logo, index) => (
         <RevealImage
-          key={logo.alt}
-          src={logo.src}
-          alt={logo.alt}
+          key={`${logo.imageUrl}-${index}`}
+          src={logo.imageUrl}
+          alt={logo.name}
           width={logo.width}
           height={logo.height}
           className={image}

@@ -1,7 +1,7 @@
 # QUBE B2B Website + CMS
 
 A production website and a small administrative CMS for QUBE Smart Lockers: a public marketing site,
-a product catalogue, and a CMS for managing product content.
+a product catalogue, and a CMS for managing product and homepage content.
 
 Figma is the visual source of truth. The screen scope, architecture rules and definition of done
 live in [CLAUDE.md](CLAUDE.md), [DESIGN_SYSTEM.md](DESIGN_SYSTEM.md) and
@@ -40,6 +40,7 @@ git-ignored and must never be committed.
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Anonymous/publishable key; access is governed by RLS |
 | `NEXT_PUBLIC_SITE_URL` | Canonical origin for canonicals, Open Graph, JSON-LD and the sitemap |
 | `NEXT_PUBLIC_SUPABASE_PRODUCT_IMAGE_BUCKET` | Storage bucket for product imagery (default `product-images`) |
+| `NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET` | Storage bucket for homepage imagery — logos, PANDORA tiles, story photos (default `site-images`) |
 | `INQUIRY_WEBHOOK_URL` | Optional, **server-only**. Where to announce a new enquiry (Teams / Slack / Power Automate) |
 
 There is no service-role key in this project, by design — nothing bypasses RLS.
@@ -53,11 +54,19 @@ There is no service-role key in this project, by design — nothing bypasses RLS
    ```text
    supabase/migrations/001_products.sql
    supabase/migrations/002_publication_roles_media.sql
+   supabase/migrations/003_card_and_hero_images.sql
+   supabase/migrations/004_drop_legacy_save_product_content.sql
+   supabase/migrations/005_homepage_content.sql
+   supabase/migrations/006_site_images_bucket.sql
    ```
 
    `002` creates the staff roles, replaces the permissive policies from `001`, adds product
    publication, the section image galleries, the `product-images` Storage bucket, the contact
    enquiry table, and the `save_product_content()` write function.
+   `003` and `004` add the separate card and hero image columns and retire the old write function
+   overload — `003` must run **before** the deploy that reads `card_image_url`.
+   `005` creates the one-row `homepage` table and `006` the `site-images` bucket (PNG only, 2 MB,
+   enforced by the bucket).
 
 3. Optionally load the development fixtures: `supabase/seed/001_products.sql`.
 4. Restart the dev server. `/` and `/products` cache their rendered output for 5 minutes, so a page
@@ -81,11 +90,31 @@ There is no service-role key in this project, by design — nothing bypasses RLS
 | Role | Can |
 | --- | --- |
 | `admin` | everything, including deleting products and managing profiles |
-| `editor` | create, edit, publish and upload product media |
-| `viewer` | read every product, including drafts; read enquiries |
+| `editor` | create, edit, publish products; upload product media; edit the homepage |
+| `viewer` | read every product, including drafts; read the homepage; read enquiries |
 
 Authorization is enforced server-side in `lib/auth/authorize.ts` and, decisively, by row level
 security in the database. Client-side checks only shape the interface.
+
+### Homepage content
+
+`/cms/home` edits the landing page. The editorial scope is the client's own list — hero text and its
+secondary link, the primary button, the hero video link, the client logos, the twelve-cell business
+grid, the nine PANDORA tiles, the "Our Clients" heading and the success-story cards. Everything else
+on `/` is site chrome and stays in code: the navigation and footer, the enquiry section and its four
+highlights (identical on every marketing page), the parallax band, the "Ask how we can help" band,
+the PANDORA grid's geometry and the two section buttons.
+
+Two behaviours are worth knowing before editing:
+
+- **The first save creates the record.** `supabase/migrations/005` seeds no row; the page renders the
+  copy in [`lib/content/defaults.ts`](lib/content/defaults.ts) until an editor saves once. That same
+  file is the fallback if the content read ever fails, so a database outage cannot leave the front
+  page empty — every other read in this project still fails honestly instead.
+- **Homepage images are PNG only, up to 2 MB, and are resized before upload.** The bucket enforces
+  both limits itself. The client logos are SVG files today, so they need PNG exports before they can
+  move into the CMS; the story cards have no photographs yet and render plain black until one is
+  uploaded.
 
 ## Deploying to Render
 
@@ -183,8 +212,9 @@ not-found page rather than a `404`.
 | `/` | Public landing page |
 | `/products` | Published product catalogue |
 | `/products/[product]` | Product detail; unpublished or unknown slugs are not served |
-| `/cms/login` | CMS sign in (`noindex`) |
+| `/cms/login` | CMS sign in (`noindex`). **Not linked from the public site** — staff reach it by URL |
 | `/cms` | Redirect to `/cms/products` |
+| `/cms/home` | Homepage copy, logos, tiles and stories. No Figma frame — added at the client's request |
 | `/cms/products` | Product list, publication switch, pagination |
 | `/cms/create` | Create a product (saved as a draft) |
 | `/cms/edit/[product]` | Edit a product and its content sections |

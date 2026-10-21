@@ -31,6 +31,12 @@ export function CmsHeader({ user }: { user: SessionUser | null }) {
           <>
             <nav aria-label="CMS sections" className="flex items-center gap-4 text-sm">
               <Link
+                href="/cms/home"
+                className="font-medium transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
+              >
+                Homepage
+              </Link>
+              <Link
                 href="/cms/products"
                 className="font-medium transition-opacity hover:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus-ring)]"
               >

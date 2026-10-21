@@ -20,11 +20,9 @@ type NavItem = { href: string; label: string };
  */
 export function MobileNav({
   items,
-  accountItem,
   cta,
 }: {
   items: NavItem[];
-  accountItem: NavItem;
   cta: NavItem;
 }) {
   const [open, setOpen] = useState(false);
@@ -51,7 +49,7 @@ export function MobileNav({
   const panel = (
     <>
       <ul className="flex flex-col">
-        {[...items, accountItem].map((item) => (
+        {items.map((item) => (
           <li key={item.href}>
             <Link
               href={item.href}

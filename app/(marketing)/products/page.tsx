@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { SiteNav } from "@/components/layout/site-nav";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { getPublishedProducts } from "@/lib/products/queries";
+import { getHomepageContentOrDefault } from "@/lib/content/queries";
 import { ProductCarousel } from "@/components/products/product-carousel";
 import { Button } from "@/components/ui/Button";
 import { SuccessStoriesCarousel } from "@/components/layout/success-stories-carousel";
@@ -32,7 +33,12 @@ export const metadata: Metadata = {
 };
 
 export default async function ProductsPage() {
-  const result = await getPublishedProducts();
+  // The success-story carousel is shared with `/`, so both routes read the same stories record rather
+  // than each keeping a copy: one dataset, one place to edit it (`/cms/home`, section 8).
+  const [result, homepage] = await Promise.all([
+    getPublishedProducts(),
+    getHomepageContentOrDefault(),
+  ]);
   const products = result.ok ? result.data : [];
   const siteUrl = getSiteUrl();
 
@@ -110,7 +116,7 @@ export default async function ProductsPage() {
           <Button variant="dark">Read stories</Button>
         </div>
         <div className="mx-auto mt-6 max-w-[1440px] px-6 lg:px-0">
-          <SuccessStoriesCarousel />
+          <SuccessStoriesCarousel stories={homepage.stories} />
         </div>
       </Reveal>
 

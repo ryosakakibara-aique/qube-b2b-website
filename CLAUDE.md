@@ -10,12 +10,16 @@ The implementation is **Figma-driven**. Figma is the visual source of truth.
 ## Confirmed V1 Screen Scope
 
 ### CMS
-- `/cms/login` — Figma node `1:2265`
+- `/cms/login` — Figma node `1:2265`. Deliberately unlinked from the public chrome (navbar, collapsed
+  panel and footer): staff reach it by URL, at the client's request. Cosmetic only — approval and RLS
+  are the gate, and `tests/cms-entry.test.ts` fails if a link comes back
 - `/cms/products` — Figma node `1:2316`
 - `/cms/edit/[product]` — Figma node `1:2525`
 - `/cms/create` — Figma node `1:2372`
 - `/cms/inquiries` — added at the client's request; administrator-only list of contact-form
   submissions (it has no Figma frame)
+- `/cms/home` — added at the client's request; the homepage's copy, client logos, PANDORA tiles and
+  success-story cards (it has no Figma frame either, and is built from the CMS's existing primitives)
 
 ### Public Website
 - `/` — Figma node `1:1117`
@@ -564,6 +568,25 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
     no stored data (the column is `text[]`), and that change is still pending. The mock workspace label
     in `parallax-features-section.tsx` keeps its own chip: it is a picture of a dashboard, not a tag.
 
+14. **The homepage is one CMS record, and its scope is the client's own list.** `/cms/home` edits
+    `public.homepage`, a single row (`check (id = 1)`) whose repeated groups are typed `jsonb`
+    columns — not a block builder. The eight controls: hero text and its secondary link, the primary
+    button, the hero video link plus the title that names its frame, the client logos, the
+    twelve-cell business grid (**fixed** at 12), the nine PANDORA tiles (**fixed** at 9), the "Our
+    Clients" heading, and the success-story cards. Everything else on `/` stays code: navigation and
+    footer, the enquiry section and its four highlights (shared by three routes), the parallax band,
+    the "Ask how we can help" band, the story card destinations, both section buttons, the page
+    metadata and the showcase geometry.
+    **No row is seeded.** `lib/content/defaults.ts` holds the copy the page shipped with; `/` renders
+    it until the first save and again if the read fails. That is the one deliberate exception to
+    "reads never substitute content" — the front page must not vanish because one query failed — and
+    it is why no migration can silently change what the live page says. Saving is live, with no draft
+    and no publish toggle: a product can sit unpublished because the catalogue hides it, but hiding
+    the homepage would take the site down, so the save upserts the singleton directly.
+    Homepage imagery is PNG-only and 2 MB, **enforced by the `site-images` bucket itself**
+    (`file_size_limit`, `allowed_mime_types`) as well as by the upload action. The eight client logos
+    are still SVGs in `public/`, so they need PNG exports before they can move into the CMS.
+
 ### Known gaps
 
 - **Typography is unverified.** The Figma SVG exports were outline-converted, so font family, size,
@@ -592,10 +615,11 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
 - **The PANDORA showcase images are paired by shape, not by content.** `pandora-1` … `pandora-9` carry no
   metadata naming their feature and could not be viewed in this workspace, so each tile's image was
   matched by aspect ratio to the tile's span, with the remaining six in filename order. If a photograph
-  sits on the wrong feature it is one path per tile in
-  `components/layout/pandora-showcase-grid.tsx`. Their alt text is empty by design — the label beside
-  each image already names the feature — so send per-image descriptions if they should be described
-  instead.
+  sits on the wrong feature it is one `imageUrl` in `lib/content/defaults.ts` — and the slot's shape is
+  now written down (`lib/content/showcase.ts`, `SHOWCASE_SLOTS`), so the CMS asks for the right shape
+  beside each upload and a test checks every stored file's real dimensions against its slot. Their alt
+  text is empty by design — the label beside each image already names the feature — so send per-image
+  descriptions if they should be described instead.
 - **The existing products have no card image, and nothing falls back.** They predate the field, so
   their `/products` carousel tiles render without a picture until one is uploaded per product. This is
   visible on the live site rather than a latent issue, and the fix is content, not code.
@@ -608,14 +632,21 @@ decided explicitly rather than inferred. Full register: [docs/DEVELOPMENT-PHASES
 - **Success-story CTAs** have no destination: no stories route is in the confirmed scope, so every
   card points at `href: "#"` and its "Read Story →" arrow is part of the card's link rather than a
   control of its own. Per-card redirection, and whether that arrow becomes separately clickable, is the
-  next task at the client's request. The cards keep their own dataset — stories, not the client list in
-  `components/layout/client-logo-grid.tsx` — even though the same eight logo files appear in both.
-- **The hero video is a stand-in, not QUBE's.** `HERO_VIDEO_ID` in
-  `components/layout/hero-video-section.tsx` currently points at *"Google AI Plans - Gemini Omni
-  Version 2 9x16"* from Google's own channel — 30 seconds, framed vertically — so the embed can be seen
-  working. Both the id and the accessible frame title say so, and both have to be replaced before the
-  hero is presented as finished; restoring `PLACEHOLDER_ID` returns the poster state. Three things come
-  with any YouTube embed: its branding cannot be removed (`modestbranding` and `showinfo` are
+  next task at the client's request; the href is deliberately not a CMS field until there is somewhere
+  to point it. The cards keep their own dataset — section 8 of the homepage record, not the client
+  list in section 4 — even though the same eight brand names appear in both.
+- **The success-story photograph and its wash are a client-requested addition, not a frame.** No
+  design defines an image in this card; the client asked for one with a black overlay at 80% at rest
+  and the brand gradient at 30% on hover. That replaced the card's own 50% hover gradient rather than
+  layering over it, because two washes darken each other. No story photograph exists yet, so every
+  card still renders the plain black panel with its logo until one is uploaded at `/cms/home`
+  section 8 — and the hover state can only be judged on a device.
+- **The hero video is a stand-in, not QUBE's.** The seeded `video_url` at `/cms/home` points at
+  *"Google AI Plans - Gemini Omni Version 2 9x16"* from Google's own channel — 30 seconds, framed
+  vertically — so the embed can be seen working. The link and the frame title both have to be
+  replaced before the hero is presented as finished, which is now an editorial change rather than a
+  deploy; pasting an unusable link does not break the page, it returns the poster state. Three things
+  come with any YouTube embed: its branding cannot be removed (`modestbranding` and `showinfo` are
   deprecated), the pause control in `hero-video-embed.tsx` is a design addition the frames do not
   define — required by WCAG 2.2.2 for an autoplaying loop — and a YouTube iframe letterboxes rather
   than filling the hero box, which a vertical clip makes obvious.

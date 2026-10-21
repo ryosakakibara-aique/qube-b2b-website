@@ -1,115 +1,42 @@
 import Image from "next/image";
 import { RevealLink } from "@/components/motion/reveal-link";
+import { EMPTY_TILE, SHOWCASE_SLOTS, type ShowcaseSlot } from "@/lib/content/showcase";
+import type { ShowcaseTile } from "@/lib/content/types";
 
 /**
  * The nine-tile PANDORA showcase.
  *
- * Each tile carries one of the exported images from `public/pandora-features-images`.
+ * The panel's **geometry is code**: nine slots in `SHOWCASE_SLOTS`, two of them two columns wide, one
+ * two rows tall, six single, and their placements are hand-written `lg:col-start-*` classes. Only the
+ * label and the photograph come from the CMS (`/cms/home`, section 6), which is why the tile count is
+ * fixed at nine — the server can express nine labels, not nine positions.
  *
- * **The pairing is by shape, not by name.** The files are `pandora-1` … `pandora-9` with no content in
- * their metadata beyond `Software: Figma`, so nothing in the repository says which photograph belongs
- * to which tile. What is knowable is the geometry, and it lines up: two assets are twice as wide as
- * they are tall, one is taller than it is wide, and six are single-tile shaped — which is exactly the
- * grid's composition (`lg:col-span-2` twice, `lg:row-span-2` once, six singles). Those three go to
- * those three, and the remaining six fill the single tiles in filename order. If a pairing is wrong it
- * is one string per tile to change.
+ * The exported photographs were paired to those shapes by aspect ratio, because nothing in their
+ * metadata said which feature each belonged to: two are twice as wide as they are tall, one is taller
+ * than it is wide, and six are single-tile shaped — exactly the panel's composition. That pairing is
+ * now an instruction to the author instead ("Wide, about 1400 × 546 px" beside the upload) and a test
+ * checks every stored image's real dimensions against its slot's shape.
  *
- * The images are marked decorative (`alt=""`) rather than described, because the label beside each one
- * already names the feature and the alternative would be alt text invented for pictures nobody here
+ * The photographs are marked decorative (`alt=""`) rather than described: the label beside each one
+ * already names the feature, and the alternative would be alt text invented for pictures nobody here
  * has seen.
  *
  * Aspect ratios, measured rather than assumed: the two wide assets are 2.15:1 against a tile that is
  * 2.56:1, the tall one is 1:1.67 against 1:1.56, and the six singles run 1.10–1.62:1 against a tile of
- * about 1.28:1. `object-cover` therefore trims up to 21% from the widest of them (`pandora-7`) and
- * under 7% from most.
+ * about 1.28:1. `object-cover` therefore trims up to 21% from the widest of them and under 7% from
+ * most.
  */
 
-type ShowcaseCellData = {
-  id: string; // renamed from `key` — `key` is a reserved React prop name
-  label: string;
-  /** Path under `public/pandora-features-images`, paired to the tile's shape. */
-  image: string;
-  variant: "dark" | "light";
-  gridClassName: string;
-};
-
-const IMAGE_DIR = "/pandora-features-images";
-
-const cells: ShowcaseCellData[] = [
-  {
-    id: "terminals-1",
-    label: "For Terminals",
-    image: `${IMAGE_DIR}/pandora-1.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-1 lg:row-start-1",
-  },
-  {
-    id: "laundry",
-    label: "For Laundry businesses",
-    image: `${IMAGE_DIR}/pandora-6.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-2 lg:col-span-2 lg:row-start-1",
-  },
-  {
-    id: "qube-app",
-    label: "QUBE App",
-    image: `${IMAGE_DIR}/pandora-5.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-1 lg:row-start-2 lg:row-span-2",
-  },
-  {
-    id: "qr-cash",
-    label: "QR & Cash Payments",
-    image: `${IMAGE_DIR}/pandora-2.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-2 lg:row-start-2",
-  },
-  {
-    id: "data-config",
-    label: "Data and Configuration",
-    image: `${IMAGE_DIR}/pandora-3.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-3 lg:row-start-2",
-  },
-  {
-    id: "terminals-2",
-    label: "For Terminals",
-    image: `${IMAGE_DIR}/pandora-4.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-2 lg:row-start-3",
-  },
-  {
-    id: "real-time",
-    label: "Real-time data",
-    image: `${IMAGE_DIR}/pandora-7.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-3 lg:row-start-3",
-  },
-  {
-    id: "recreational",
-    label: "For Recreational areas",
-    image: `${IMAGE_DIR}/pandora-9.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-1 lg:col-span-2 lg:row-start-4",
-  },
-  {
-    id: "offices",
-    label: "For Offices",
-    image: `${IMAGE_DIR}/pandora-8.png`,
-    variant: "dark",
-    gridClassName: "lg:col-start-3 lg:row-start-4",
-  },
-];
-
-// ShowcaseCell's prop type only needs the rendering fields, plus its place in the stagger.
 function ShowcaseCell({
-  label,
-  image,
-  variant,
-  gridClassName,
+  tile,
+  slot,
   index,
-}: Omit<ShowcaseCellData, "id"> & { index: number }) {
-  const isDark = variant === "dark";
+}: {
+  tile: ShowcaseTile;
+  slot: ShowcaseSlot;
+  index: number;
+}) {
+  const isDark = slot.variant === "dark";
   return (
     <RevealLink
       href="#"
@@ -121,7 +48,7 @@ function ShowcaseCell({
       variant="fade"
       className={`group relative flex min-h-[220px] items-end overflow-hidden border ${
         isDark ? "border-[#27272a]" : "border-[#e5e7eb]"
-      } lg:h-full lg:min-h-0 ${gridClassName}`}
+      } lg:h-full lg:min-h-0 ${slot.gridClassName}`}
     >
       {/* Base surface: the photo covers it, and it is what remains if the image cannot load. */}
       <div
@@ -129,13 +56,15 @@ function ShowcaseCell({
         aria-hidden="true"
       />
 
-      <Image
-        src={image}
-        alt=""
-        fill
-        sizes="(min-width: 1024px) 33vw, 100vw"
-        className="object-cover"
-      />
+      {tile.imageUrl ? (
+        <Image
+          src={tile.imageUrl}
+          alt=""
+          fill
+          sizes="(min-width: 1024px) 33vw, 100vw"
+          className="object-cover"
+        />
+      ) : null}
 
       {/* The wash that keeps the label readable over a photograph. */}
       {isDark ? (
@@ -155,18 +84,22 @@ function ShowcaseCell({
           isDark ? "text-white" : "text-[#18181b]"
         }`}
       >
-        {label}
-        {/* <ArrowIcon /> */}
+        {tile.label}
       </span>
     </RevealLink>
   );
 }
 
-export function PandoraShowcaseGrid() {
+export function PandoraShowcaseGrid({ tiles }: { tiles: ShowcaseTile[] }) {
   return (
     <div className="grid grid-cols-1 overflow-hidden rounded-[30px] border border-[#e5e7eb] lg:h-[1082px] lg:grid-cols-3 lg:grid-rows-4">
-      {cells.map(({ id, ...cellProps }, index) => (
-        <ShowcaseCell key={id} index={index} {...cellProps} />
+      {SHOWCASE_SLOTS.map((slot, index) => (
+        <ShowcaseCell
+          key={slot.id}
+          tile={tiles[index] ?? EMPTY_TILE}
+          slot={slot}
+          index={index}
+        />
       ))}
     </div>
   );

@@ -2,18 +2,24 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
+import { EMPTY_TILE, SHOWCASE_SLOTS } from "../lib/content/showcase.ts";
+import { HOMEPAGE_DEFAULTS } from "../lib/content/defaults.ts";
+import { SHOWCASE_TILE_COUNT } from "../lib/content/validation.ts";
 
 /**
- * The PANDORA showcase tiles and their images.
+ * The PANDORA showcase: nine slots of geometry, nine tiles of content.
  *
- * The tiles are not interchangeable: two of them span two columns, one spans two rows, and six are
- * single. The exported images follow the same three shapes — two wide, one tall, six single — but they
- * are named `pandora-1` … `pandora-9` with nothing in their metadata to say which photograph belongs
- * where, so the pairing was made by shape. That is exactly the kind of join that survives a refactor
- * looking correct while showing a portrait photograph in a landscape tile, so it is pinned here.
+ * The tiles are not interchangeable. Two slots span two columns, one spans two rows, six are single,
+ * and their placements are hand-written classes — so the slots are code and only the label and the
+ * photograph are editorial. The exported photographs follow the same three shapes (two wide, one tall,
+ * six single) but are named `pandora-1` … `pandora-9` with nothing in their metadata to say which
+ * feature each belongs to, so the pairing was made by shape. That is exactly the kind of join that
+ * survives a refactor looking correct while showing a portrait photograph in a landscape tile.
  *
- * The dimensions are read from the PNG headers rather than hardcoded, so re-exporting an asset at a
- * different size is checked rather than assumed.
+ * Dimensions are read from each PNG's IHDR rather than hardcoded, so re-exporting an asset at a
+ * different size is checked rather than assumed. The stored defaults are what gets checked here; the
+ * CMS instructs an author to upload the same shape (the slot's `uploadNote`) and validation refuses a
+ * tenth or a ninth-missing tile.
  */
 
 const projectRoot = process.cwd();
@@ -33,64 +39,132 @@ function pngSize(file: string): { width: number; height: number } {
   return { width: bytes.readUInt32BE(16), height: bytes.readUInt32BE(20) };
 }
 
-const source = read(COMPONENT);
-const ids = [...source.matchAll(/id:\s*"([^"]+)"/g)].map((m) => m[1]);
-const images = [...source.matchAll(/image:\s*`\$\{IMAGE_DIR\}\/([^`]+)`/g)].map(
-  (m) => m[1],
-);
-const spans = [...source.matchAll(/gridClassName:\s*"([^"]+)"/g)].map((m) => m[1]);
+const tiles = HOMEPAGE_DEFAULTS.showcaseTiles;
 
-test("every tile has an image, and the files are on disk", () => {
-  assert.equal(ids.length, 9, "the showcase is a nine-tile grid");
-  assert.equal(images.length, 9, "each tile needs its own image");
-  assert.equal(spans.length, 9);
+test("there is one tile per slot, and the count is fixed", () => {
+  assert.equal(SHOWCASE_SLOTS.length, 9, "the showcase is a nine-tile grid");
+  assert.equal(SHOWCASE_TILE_COUNT, SHOWCASE_SLOTS.length);
+  assert.equal(tiles.length, SHOWCASE_TILE_COUNT, "a tile per slot, in slot order");
 
-  const unique = new Set(images);
-  assert.equal(unique.size, 9, "no image should be used twice");
+  assert.equal(
+    new Set(SHOWCASE_SLOTS.map((slot) => slot.id)).size,
+    9,
+    "slot ids are the React keys and the DOM identity, so they must be unique",
+  );
+
+  for (const tile of tiles) {
+    assert.ok(tile.label.trim().length > 0, "every tile needs its label");
+    assert.ok(tile.imageUrl.trim().length > 0, `${tile.label} has no photograph`);
+    assert.equal(tile.label, tile.label.trim(), `${tile.label} carries stray whitespace`);
+  }
+});
+
+test("every stored image is on disk, and nothing is referenced twice", () => {
+  const referenced = tiles.map((tile) =>
+    path.basename(tile.imageUrl),
+  );
+
+  assert.equal(new Set(referenced).size, 9, "no image should be used twice");
 
   const onDisk = fs
     .readdirSync(path.join(projectRoot, IMAGE_DIR))
     .filter((name) => name.endsWith(".png"))
     .sort();
+
   assert.deepEqual(
-    [...unique].sort(),
+    [...referenced].sort(),
     onDisk,
     "every image in the directory should be used, and nothing else referenced",
   );
 });
 
-test("the shape of each image matches the shape of its tile", () => {
-  const wide = spans.filter((value) => value.includes("lg:col-span-2"));
-  const tall = spans.filter((value) => value.includes("lg:row-span-2"));
+test("the shape of each image matches the shape of its slot", () => {
+  const wide = SHOWCASE_SLOTS.filter((slot) => slot.shape === "wide");
+  const tall = SHOWCASE_SLOTS.filter((slot) => slot.shape === "tall");
 
-  assert.equal(wide.length, 2, "two tiles span two columns");
-  assert.equal(tall.length, 1, "one tile spans two rows");
+  assert.equal(wide.length, 2, "two slots span two columns");
+  assert.equal(tall.length, 1, "one slot spans two rows");
 
   const failures: string[] = [];
 
-  spans.forEach((span, index) => {
-    const file = path.join(projectRoot, IMAGE_DIR, images[index]);
+  SHOWCASE_SLOTS.forEach((slot, index) => {
+    const file = path.join(projectRoot, IMAGE_DIR, path.basename(tiles[index].imageUrl));
     const { width, height } = pngSize(file);
     const ratio = width / height;
 
-    if (span.includes("lg:col-span-2") && ratio < 1.5) {
+    if (slot.shape === "wide" && ratio < 1.5) {
       failures.push(
-        `${ids[index]}: a two-column tile needs a wide image, but ${images[index]} is ${ratio.toFixed(2)}:1`,
+        `${slot.id}: a two-column slot needs a wide image, but ${tiles[index].imageUrl} is ${ratio.toFixed(2)}:1`,
       );
     }
-    if (span.includes("lg:row-span-2") && ratio > 1) {
+    if (slot.shape === "tall" && ratio > 1) {
       failures.push(
-        `${ids[index]}: a two-row tile needs a portrait image, but ${images[index]} is ${ratio.toFixed(2)}:1`,
+        `${slot.id}: a two-row slot needs a portrait image, but ${tiles[index].imageUrl} is ${ratio.toFixed(2)}:1`,
       );
     }
-    if (!span.includes("span") && ratio >= 2) {
+    if (slot.shape === "single" && ratio >= 2) {
       failures.push(
-        `${ids[index]}: a single tile would crop a doubled image badly, and ${images[index]} is ${ratio.toFixed(2)}:1`,
+        `${slot.id}: a single slot would crop a doubled image badly, and ${tiles[index].imageUrl} is ${ratio.toFixed(2)}:1`,
       );
     }
   });
 
   assert.deepEqual(failures, [], failures.join("\n"));
+});
+
+test("the panel's geometry is the design's", () => {
+  const source = read(COMPONENT);
+
+  assert.match(
+    source,
+    /grid-cols-1[^"]*lg:h-\[1082px\][^"]*lg:grid-cols-3 lg:grid-rows-4/,
+    "the panel is a fixed 3x4 composition on wide screens; the slots' spans only make sense inside it",
+  );
+  assert.match(source, /rounded-\[30px\]/, "the panel keeps the design's 30px radius");
+
+  const spans = SHOWCASE_SLOTS.map((slot) => slot.gridClassName);
+
+  assert.equal(
+    spans.filter((value) => value.includes("lg:col-span-2")).length,
+    2,
+    "two wide slots",
+  );
+  assert.equal(
+    spans.filter((value) => value.includes("lg:row-span-2")).length,
+    1,
+    "one tall slot",
+  );
+
+  for (const slot of SHOWCASE_SLOTS) {
+    assert.ok(
+      read("lib/content/showcase.ts").includes(`"${slot.gridClassName}"`),
+      `${slot.id}'s placement must live in the slot list, not be invented at render time`,
+    );
+  }
+});
+
+test("the tiles render from the slot list and the stored content", () => {
+  const source = read(COMPONENT);
+
+  assert.match(
+    source,
+    /SHOWCASE_SLOTS\.map\(\(slot, index\)/,
+    "the panel is drawn from the slot list, one cell per slot",
+  );
+  assert.match(
+    source,
+    /tiles\[index\] \?\? EMPTY_TILE/,
+    "a missing tile falls back to an empty one rather than reading undefined",
+  );
+  assert.match(
+    source,
+    /\{tile\.imageUrl\}/,
+    "the photograph comes from the record, not from a path baked into the component",
+  );
+  assert.ok(
+    !source.includes("pandora-features-images"),
+    "the image directory belongs to the defaults, not to the renderer",
+  );
 });
 
 test("every tile animates in through the link itself", () => {
@@ -119,6 +193,8 @@ test("every tile animates in through the link itself", () => {
 });
 
 test("the photographs are marked decorative rather than invented", () => {
+  const source = read(COMPONENT);
+
   assert.ok(
     source.includes('alt=""'),
     "the label beside each image already names the feature: describing pictures nobody here has " +
@@ -128,4 +204,9 @@ test("the photographs are marked decorative rather than invented", () => {
     source.includes("object-cover"),
     "the tiles are a fixed grid, so the images fill them rather than letterboxing",
   );
+});
+
+test("the empty tile is renderable", () => {
+  assert.equal(EMPTY_TILE.label, "");
+  assert.equal(EMPTY_TILE.imageUrl, "");
 });

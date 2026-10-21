@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useActionState, useRef, useState, type RefObject } from "react";
+import { formatFileSize, readImageSize } from "@/components/cms/image-upload";
 import { saveProduct } from "@/lib/products/actions";
 import { uploadProductImage } from "@/lib/media/actions";
 import {
@@ -28,40 +29,6 @@ import {
 
 /** Derived from the server's own list, so the file picker cannot drift from what will be accepted. */
 const ACCEPTED_IMAGE_TYPES = ALLOWED_IMAGE_TYPES.join(",");
-
-/** Rounded, and never "0 KB", because the point is to tell the user how far over they are. */
-function formatFileSize(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-/**
- * The pixel size of a file the author just chose, read locally so they can judge it before saving.
- *
- * Only ever called for a freshly picked file. An already-uploaded image is displayed through
- * `next/image`, which serves a resized copy, so its `naturalWidth` would report the thumbnail rather
- * than the original.
- *
- * Resolves to null instead of throwing: a file the browser cannot decode is already refused by the
- * server's signature check, and a missing readout must not break the upload.
- */
-function readImageSize(file: File): Promise<{ width: number; height: number } | null> {
-  return new Promise((resolve) => {
-    const objectUrl = URL.createObjectURL(file);
-    const image = new window.Image();
-
-    image.onload = () => {
-      resolve({ width: image.naturalWidth, height: image.naturalHeight });
-      URL.revokeObjectURL(objectUrl);
-    };
-    image.onerror = () => {
-      resolve(null);
-      URL.revokeObjectURL(objectUrl);
-    };
-
-    image.src = objectUrl;
-  });
-}
 
 type DraftSection = {
   id: string;

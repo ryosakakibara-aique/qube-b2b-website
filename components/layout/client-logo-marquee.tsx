@@ -1,4 +1,5 @@
 import { ClientLogoGrid } from "@/components/layout/client-logo-grid";
+import type { ClientLogo } from "@/lib/content/types";
 
 const topRowWidths = [600, 600, 600];
 const bottomRowWidths = [600, 600, 600, 600];
@@ -32,13 +33,19 @@ function MarqueeRow({
   );
 }
 
-export function ClientLogoMarquee() {
+/**
+ * The "Our Clients" panel: two rows of moving grey placeholders with the logo grid laid over them.
+ *
+ * The bars are decoration, not content — they are fixed widths and are not editable in the CMS. The
+ * logos come from the homepage record and are the same eight (or however many) the hero strip shows.
+ */
+export function ClientLogoMarquee({ logos }: { logos: ClientLogo[] }) {
   return (
     <div className="relative flex w-full flex-col gap-3 rounded-[32px]">
       <MarqueeRow widths={topRowWidths} direction="ltr" />
       <MarqueeRow widths={bottomRowWidths} direction="rtl" />
       <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-[200px] items-center justify-center bg-gradient-to-t from-[#f1f5f9] via-[#f1f5f9]/[0.51] via-[70.192%] to-transparent px-6 py-4">
-        <ClientLogoGrid variant="marquee" />
+        <ClientLogoGrid variant="marquee" logos={logos} />
       </div>
     </div>
   );

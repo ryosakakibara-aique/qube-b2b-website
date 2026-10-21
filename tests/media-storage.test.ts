@@ -11,9 +11,14 @@ import {
   MAX_IMAGE_BYTES,
   MAX_IMAGE_SIZE_LABEL,
   SERVER_ACTION_BODY_LIMIT_BYTES,
+  SITE_IMAGE_BYTES,
+  SITE_IMAGE_SIZE_LABEL,
+  SITE_IMAGE_TYPES,
   extensionFor,
   getProductImageBucket,
+  getSiteImageBucket,
   isAllowedImageType,
+  isAllowedSiteImageType,
   matchesImageSignature,
 } from "../lib/media/storage.ts";
 
@@ -155,4 +160,68 @@ test("defaults to the documented bucket and honours the env override", () => {
   withBucket(undefined, () => assert.equal(getProductImageBucket(), "product-images"));
   withBucket("   ", () => assert.equal(getProductImageBucket(), "product-images"));
   withBucket("custom-bucket", () => assert.equal(getProductImageBucket(), "custom-bucket"));
+});
+
+/* ---------------------------------------------------------------------------
+ * Homepage imagery
+ *
+ * A narrower rule than the product one: PNG only, 2 MB, resized by the author. The bucket enforces
+ * the same pair (`006_site_images_bucket.sql`), so these constants and the migration cannot drift
+ * without an upload failing in a way that looks like a bug.
+ * ------------------------------------------------------------------------- */
+
+test("homepage images are PNG only, and far below the request limit", () => {
+  assert.deepEqual([...SITE_IMAGE_TYPES], ["image/png"]);
+  assert.equal(isAllowedSiteImageType("image/png"), true);
+  assert.equal(
+    isAllowedSiteImageType("image/jpeg"),
+    false,
+    "the client asked for PNG only, so a JPEG is refused here rather than silently stored",
+  );
+  assert.equal(isAllowedSiteImageType("image/svg+xml"), false, "SVG stays refused");
+
+  assert.equal(SITE_IMAGE_BYTES, 2 * 1024 * 1024);
+  assert.equal(SITE_IMAGE_SIZE_LABEL, "2 MB", "the copy has to mean what the cap enforces");
+  assert.ok(
+    SITE_IMAGE_BYTES < SERVER_ACTION_BODY_LIMIT_BYTES,
+    "a cap at or above the request limit is unreachable: Next raises the 413 before the action runs",
+  );
+});
+
+test("the homepage bucket defaults to site-images and honours the env override", () => {
+  const previous = process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET;
+
+  const withBucket = (value: string | undefined, run: () => void) => {
+    if (value === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET;
+    else process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET = value;
+    try {
+      run();
+    } finally {
+      if (previous === undefined) delete process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET;
+      else process.env.NEXT_PUBLIC_SUPABASE_SITE_IMAGE_BUCKET = previous;
+    }
+  };
+
+  withBucket(undefined, () => assert.equal(getSiteImageBucket(), "site-images"));
+  withBucket("   ", () => assert.equal(getSiteImageBucket(), "site-images"));
+  withBucket("custom-site", () => assert.equal(getSiteImageBucket(), "custom-site"));
+});
+
+test("the bucket migration enforces the same two rules", () => {
+  const sql = fs.readFileSync(
+    path.join(process.cwd(), "supabase/migrations/006_site_images_bucket.sql"),
+    "utf8",
+  );
+
+  assert.match(
+    sql,
+    /values \('site-images', 'site-images', true, 2097152, array\['image\/png'\]\)/,
+    "file_size_limit and allowed_mime_types are the only place the rule cannot be bypassed: an " +
+      "oversized or non-PNG object is refused by Storage before any application code runs",
+  );
+  assert.equal(
+    2097152,
+    SITE_IMAGE_BYTES,
+    "the bucket's byte limit and lib/media/storage.ts must agree",
+  );
 });

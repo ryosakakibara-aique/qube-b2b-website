@@ -191,19 +191,28 @@ test("the player is created on the client, so the origin can be sent", () => {
   );
 });
 
-test("the hero section still keeps its placeholder id", () => {
+test("the video link is content, and an unusable link falls back to the poster", () => {
   const source = read(SECTION);
 
   assert.ok(
-    source.includes("REPLACE_WITH_YOUTUBE_VIDEO_ID"),
-    "the placeholder id is the mechanism that returns the hero to its poster state with no other change",
+    source.includes("videoUrl") && source.includes("videoTitle"),
+    "the link and its accessible name come from the homepage record: replacing the video is an " +
+      "editorial change now, not a deploy",
   );
   assert.ok(
-    source.includes("hasVideo") && source.includes("<HeroVideoEmbed"),
-    "the embed has to be conditional on a configured id",
+    source.includes("parseYouTubeId"),
+    "the stored value is a pasted URL, so it has to be normalised to an id before it reaches the embed",
   );
   assert.ok(
-    source.includes("Product Demo / Hero Video Placeholder"),
-    "the poster state is what shows when no id is configured, so it must stay",
+    source.includes("{videoId ?"),
+    "the embed has to be conditional on a usable link",
+  );
+  assert.ok(
+    source.includes("Product demo"),
+    "the poster state is what shows when no video is configured, so it must stay",
+  );
+  assert.ok(
+    !source.includes("REPLACE_WITH_YOUTUBE_VIDEO_ID"),
+    "the sentinel id is gone: an empty link is now the mechanism that returns the hero to its poster",
   );
 });

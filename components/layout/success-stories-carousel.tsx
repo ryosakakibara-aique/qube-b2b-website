@@ -1,148 +1,110 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { StoryCard } from "@/lib/content/types";
 
 /**
  * Success stories.
  *
- * A dataset of its own, deliberately not shared with `client-logo-grid.tsx` even though the same
- * eight logo files appear in both: these are stories, each with its own destination and its own
- * order, not the client list. `highlight` is carried on one card but is not rendered yet.
+ * A dataset of its own, deliberately not shared with the client-logo list even though the same brand
+ * names appear in both: these are stories with their own order and their own logo uploads, not the
+ * client list. Both are edited at `/cms/home` (sections 4 and 8).
+ *
+ * **The card's image and its wash are a client-requested addition, not a reading of the frames.** No
+ * frame defines a photograph here; the design shipped a black card with a logo on it. The wash is:
+ *
+ * - at rest, the photograph sits under a black overlay at 80%, so the card still reads almost black;
+ * - on hover, that overlay is replaced by the brand gradient at 30%, so the photograph appears
+ *   through a tinted wash.
+ *
+ * Both layers are stacked rather than one animated colour, because a single background cannot
+ * interpolate from black to a three-stop gradient. They cross-fade, which also means the 30% value
+ * stays exactly 30% instead of being composited over an already-dark card.
+ *
+ * The card's own hover gradient (50%, from an earlier round) was removed rather than layered: two
+ * washes over the same photograph darken each other and the 30% stops meaning anything.
  *
  * **Deferred, at the client's request:** every card points at `href: "#"`, and the arrow in
  * "Read Story →" is part of the card's link rather than a control of its own. Giving each card a real
  * destination — and deciding whether the arrow is separately clickable — is a separate task.
  */
+function StoryCardItem({
+  card,
+  duplicate = false,
+}: {
+  card: StoryCard;
+  duplicate?: boolean;
+}) {
+  const className =
+    "group relative flex h-[450px] w-[270px] shrink-0 items-center justify-center overflow-hidden rounded-[30px] border-y-2 border-[#27272a] bg-[#18181b] transition-colors duration-300 ease-out hover:border-slate-50";
 
-type StoryCard = {
-  id: string;
-  logo: { src: string; alt: string; width: number; height: number };
-  href: string;
-  highlight?: boolean;
-};
+  const content = (
+    <>
+      {card.imageUrl ? (
+        <Image
+          src={card.imageUrl}
+          alt=""
+          fill
+          sizes="270px"
+          className="object-cover"
+        />
+      ) : null}
 
-const storyCards: StoryCard[] = [
-  {
-    id: "anjo-world",
-    href: "#",
-    logo: {
-      src: "/anjo-world-logo.svg",
-      alt: "Anjo World",
-      width: 94,
-      height: 29,
-    },
-  },
-  {
-    id: "enchanted-kingdom",
-    href: "#",
-    logo: {
-      src: "/enchanted-kingdom-logo.svg",
-      alt: "Enchanted Kingdom",
-      width: 69,
-      height: 30,
-    },
-  },
-  {
-    id: "ism",
-    href: "#",
-    logo: {
-      src: "/ism-logo.svg",
-      alt: "International School Manila",
-      width: 162,
-      height: 22,
-    },
-  },
-  {
-    id: "jollibee",
-    href: "#",
-    highlight: true,
-    logo: {
-      src: "/jollibee-logo.svg",
-      alt: "Jollibee",
-      width: 103,
-      height: 24,
-    },
-  },
-  {
-    id: "kmc",
-    href: "#",
-    logo: { src: "/kmc-logo.svg", alt: "KMC", width: 93, height: 22 },
-  },
-  {
-    id: "lucima",
-    href: "#",
-    logo: { src: "/lucima-logo.svg", alt: "Lucima", width: 70, height: 37 },
-  },
-  {
-    id: "pitx",
-    href: "#",
-    logo: { src: "/pitx-logo.svg", alt: "PITX", width: 72, height: 20 },
-  },
-  {
-    id: "rhk",
-    href: "#",
-    logo: { src: "/rhk-logo.svg", alt: "RHK", width: 44, height: 40 },
-  },
-];
-
-function StoryCardItem({ card, duplicate = false }: { card: StoryCard; duplicate?: boolean }) {
-  const className = `group flex h-[450px] w-[270px] shrink-0 flex-col items-center justify-between overflow-hidden rounded-[30px] border-y-2 transition-transform duration-300 ease-out hover:border-slate-50 border-[#27272a] bg-[#18181b] hover:bg-gradient-to-b from-[#00c290]/50 via-[49.519%] via-[#0fb8aa]/50 to-[#1fadc5]/50`;
-
-  const logo = (
-    <div className="flex flex-1 items-center justify-center p-4">
-      <Image
-        src={card.logo.src}
-        // The second copy exists only to close the loop, so it is decorative: an empty alt keeps it
-        // out of the accessibility tree and out of image results, while the visible copy keeps the
-        // real name. Without this the same logo was announced twice on every pass.
-        alt={duplicate ? "" : card.logo.alt}
-        width={card.logo.width}
-        height={card.logo.height}
-        className={"brightness-0 invert"}
+      {/* Rest: black at 80%, so the photograph is only suggested. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-black/80 transition-opacity duration-300 ease-out group-hover:opacity-0"
       />
-    </div>
+
+      {/* Hover: the brand gradient at 30%. */}
+      <span
+        aria-hidden="true"
+        className="absolute inset-0 bg-gradient-to-b from-[#00c290]/30 via-[#0fb8aa]/30 to-[#1fadc5]/30 opacity-0 transition-opacity duration-300 ease-out group-hover:opacity-100"
+      />
+
+      <div className="relative flex flex-1 items-center justify-center p-4">
+        <Image
+          src={card.logoUrl}
+          // The second copy exists only to close the loop, so it is decorative: an empty alt keeps it
+          // out of the accessibility tree and out of image results, while the visible copy keeps the
+          // real name. Without this the same logo was announced twice on every pass.
+          alt={duplicate ? "" : card.name}
+          width={card.logoWidth}
+          height={card.logoHeight}
+          className="brightness-0 invert"
+        />
+      </div>
+    </>
   );
 
   /*
-    The loop needs two passes of the sequence to be seamless, and the second pass used to be a second
-    set of real links: sixteen anchors for eight cards, every one of them pointing at `#`, each
-    repeating the same logo alt text. `ProductCarousel` already treats its filler copies this way —
-    the visual loop is kept, and only one copy is authoritative — so this follows that rule rather
-    than inventing a second one. The duplicate stays in the visual flow but leaves the document tree.
+    The loop needs two passes of the sequence to be seamless, and the second pass keeps every card in
+    the visual flow while leaving the document tree. `ProductCarousel` treats its filler copies the
+    same way, so this follows that rule rather than inventing a second one.
   */
   if (duplicate) {
     return (
       <div className={className} aria-hidden="true">
-        {logo}
+        {content}
       </div>
     );
   }
 
   return (
-    <Link href={card.href} className={className}>
-      {logo}
-      {/* User hid this for the meantime. */}
-      {/* <div className="flex h-[80px] w-full items-center justify-center py-4">
-        <span
-          className={`flex items-center gap-2 text-lg font-semibold transition-opacity group-hover:opacity-70 text-white`}
-        >
-          Read Story <span aria-hidden="true">→</span>
-        </span>
-      </div> */}
+    <Link href="#" className={className}>
+      {content}
     </Link>
   );
 }
 
-export function SuccessStoriesCarousel() {
-  // Duplicate the sequence for a seamless RTL loop, same pattern as the clients marquee. The second
-  // pass is rendered as decorative copies, not as a second set of links.
+export function SuccessStoriesCarousel({ stories }: { stories: StoryCard[] }) {
   return (
     <div className="w-full overflow-hidden rounded-[30px]">
       <div className="flex w-max gap-6 animate-marquee-rtl hover:[animation-play-state:paused] focus-within:[animation-play-state:paused]">
-        {storyCards.map((card) => (
-          <StoryCardItem key={card.id} card={card} />
+        {stories.map((card, index) => (
+          <StoryCardItem key={`${card.name}-${index}`} card={card} />
         ))}
-        {storyCards.map((card) => (
-          <StoryCardItem key={`${card.id}-loop`} card={card} duplicate />
+        {stories.map((card, index) => (
+          <StoryCardItem key={`${card.name}-${index}-loop`} card={card} duplicate />
         ))}
       </div>
     </div>

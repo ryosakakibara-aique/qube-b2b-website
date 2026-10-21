@@ -96,7 +96,7 @@ by shape, existing products lacking card images, hero video being a stand-in. Th
 | **G12** | `public/` held twenty unreferenced files: eight `detail-*.png`, seven `section-*.png`, `hero-demo.png` and the create-next-app leftovers (`next.svg`, `vercel.svg`, `file.svg`, `globe.svg`, `window.svg`). **Partly corrected during implementation:** `section-pandora.png` and `hero-demo.png` are referenced by `supabase/seed/001_products.sql` as seed image paths, so they are live fixtures rather than leftovers and were kept. The other eighteen were removed. | `public/` | P1 — **done, see §5.1** |
 | **G13** | Card images use `alt=""` with an `sr-only` text sibling; related tiles reuse the **hero** (2000×800) image for a 300 px square slot; `sizes` is absent on card images and hardcoded to `300px` on related tiles. | `components/products/product-carousel.tsx`; detail route | P2 |
 | **G14** | The hero is a third-party YouTube iframe — main-thread and network cost on the LCP-critical page. **Retained by client decision** (§7, D5); recorded so the cost is not mistaken for an oversight. | `components/layout/hero-video-section.tsx` | P1, accepted |
-| **G15** | `/cms/login` is linked from the public footer. It is `noindex` and `robots`-disallowed, so it is harmless, but it spends public link equity and crawl budget on a private page. | `components/layout/site-footer.tsx` | P2 |
+| **G15** | `/cms/login` was linked from the public footer. It is `noindex` and `robots`-disallowed, so it was harmless, but it spent public link equity and crawl budget on a private page. **Resolved on the client's instruction: the link is gone from the footer and from the navbar and its collapsed panel — the CMS is URL-only.** | `components/layout/site-footer.tsx`, `components/layout/site-nav.tsx`, `components/layout/mobile-nav.tsx` | P2 — **done** |
 
 ### 3.2 Live-host findings
 
@@ -170,7 +170,7 @@ regresses.
 | B3 | Sitemap completeness: keep the existing "never emit an unverifiable URL" behaviour, which is correct. Whether to emit sitemap `images` is deferred to B4, since it depends on the image contract. |
 | B4 **(G4, G5)** | **Parked** — see §7 D4. Decide the fallback asset, then add `og:image` defaults at the root layout and the `twitter: { card: "summary_large_image" }` block it unblocks. |
 | B5 | Move `og:type`, `og:siteName`, `og:locale`, `og:title`, `og:description` defaults to the root layout so no route can omit them, keeping per-route overrides. |
-| B6 **(G9, G15)** | Demote the footer's "Explore"/"Account" headings from `<h2>` to `<h3>`; the `<nav aria-label="Footer">` stays. Removing the `/cms/login` entry from the public footer is proposed and marked as a client-facing change. |
+| B6 **(G9, G15)** | Demote the footer's "Explore"/"Account" headings from `<h2>` to `<h3>`; the `<nav aria-label="Footer">` stays. **Done**: headings demoted, and the client then had the `/cms/login` entry removed from the footer as well — the two-column footer nav collapsed into one list with the sitemap moved into it. |
 | B7 | 404 hygiene: confirm `app/not-found.tsx` and the detail route's `notFound()` return a real `404` with no canonical, and emit `robots: { index: false }` on the not-found view if Next does not already. |
 
 **Verify.** Package A's script passes the origin, `lastmod` and 404 assertions;
@@ -299,7 +299,7 @@ Landed against this plan. Each row names the file that changed, so the claim is 
 | **B1** — one origin resolver for `robots.ts` | **done** | `app/robots.ts` |
 | **B2/B3** — honest sitemap `lastmod` | **done** | `app/sitemap.ts`, `lib/seo/dates.ts`, `lib/products/queries.ts` |
 | **B4/B5** — OG image and Twitter card | **parked**, see §7 P1 | — |
-| **B6** — footer outline, `/cms` link | **partly done**: headings demoted to `<h3>`. Removing the `/cms/login` footer link is still an open client preference (§7 O3) | `components/layout/site-footer.tsx` |
+| **B6** — footer outline, `/cms` link | **done**: headings demoted to `<h3>`, and the `/cms/login` entry removed from the footer (and the navbar) on the client's instruction — closing O3/G15. The footer nav is one list now, with the sitemap in it | `components/layout/site-footer.tsx`, `components/layout/site-nav.tsx` |
 | **B7** — 404 hygiene | **done** | `app/not-found.tsx`, `app/(marketing)/products/[product]/page.tsx` |
 | **C1–C6** — entity naming, schema builders, `WebPage`, `ItemList` | **done** | `lib/seo/schema.ts` (new); all three marketing routes |
 | **C7** — heading outline pass | **done**, and now machine-checked by the audit script | — |
@@ -472,7 +472,7 @@ entity decisions C forces; F must measure a stable surface.
 | --- | --- | --- |
 | **O1** | `additionalProperty` for `acquisition`/`locations` (C6) | Confirmation that these CMS fields hold stable product facts rather than marketing copy |
 | **O2** | `contactPoint` on `Organization` (C3) | A real public phone or email, if one should be published |
-| **O3** | Removing `/cms/login` from the public footer (B6/G15) | Client preference |
+| **O3** | Removing `/cms/login` from the public footer (B6/G15) | **Decided by the client: remove it, everywhere in the public chrome.** Implemented; the CMS is reachable by URL only, which is cosmetic rather than protective — approval and RLS remain the gate |
 | **O4** | **The soft-404 trade.** An unknown product slug answers `200`. Fixing the status with `dynamicParams = false` makes any product absent from the build-time manifest a hard 404, which on this catalogue hit a live product. The alternatives are: accept `noindex` as the protection and leave on-demand rendering intact (**current state**); or accept the hard-404 risk for a status crawlers understand. Reportable, but the decision is not ours to make silently. | A deliberate choice between status correctness and a new-product outage risk |
 
 ---
